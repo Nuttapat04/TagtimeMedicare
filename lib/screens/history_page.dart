@@ -29,27 +29,23 @@ class _HistoryPageState extends State<HistoryPage>
       backgroundColor: Color(0xFFFFF4E0),
       body: Column(
         children: [
-          // โลโก้อยู่บนสุด
-          Padding(
-            padding: const EdgeInsets.only(top: 50.0),
-            child: Column(
-              children: [
-                Image.asset(
-                  'images/LOGOAYD.png', // เส้นทางของโลโก้
-                  height: 70, // ขนาดความสูงของโลโก้
+          // โลโก้และข้อความ
+          Column(
+            children: [
+              Image.asset(
+                'images/LOGOAYD.png', // เส้นทางของโลโก้
+                height: 70, // ขนาดความสูงของโลโก้
+              ),
+              SizedBox(height: 0), // ระยะห่างระหว่างโลโก้กับข้อความ
+              Text(
+                "Test",
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF763355),
                 ),
-                SizedBox(height: 8), // ระยะห่างระหว่างโลโก้กับคำว่า History
-                //SizedBox.shrink(),
-                Text(
-                  "Test",
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF763355),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
           Expanded(
             child: Scaffold(
@@ -57,15 +53,6 @@ class _HistoryPageState extends State<HistoryPage>
               appBar: AppBar(
                 backgroundColor: Color(0xFFFFF4E0),
                 elevation: 0,
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '',
-                      style: TextStyle(color: Color(0xFF763355)),
-                    ),
-                  ],
-                ),
                 centerTitle: true,
                 bottom: TabBar(
                   controller: _tabController,
@@ -93,7 +80,6 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildListPage() {
-    // โค้ดของ List Page
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('Medications').snapshots(),
       builder: (context, snapshot) {
@@ -141,7 +127,6 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildHistoryPage() {
-    // โค้ดของ History Page
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('Medications').snapshots(),
       builder: (context, snapshot) {
@@ -240,4 +225,4 @@ class _HistoryPageState extends State<HistoryPage>
       },
     );
   }
-}
+} 
