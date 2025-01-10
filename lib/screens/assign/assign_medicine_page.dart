@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AssignMedicinePage extends StatefulWidget {
   final String uid;
@@ -22,7 +23,6 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
 
   void updateNotificationTimes() {
     setState(() {
-      // Adjust the number of TimeOfDay objects based on frequency
       notificationTimes = List.generate(frequency, (index) => TimeOfDay.now());
     });
   }
@@ -55,6 +55,9 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
 
   Future<void> saveToDatabase() async {
     try {
+      // ดึง user_id ของผู้ใช้ที่ล็อกอินอยู่
+      final String userId = FirebaseAuth.instance.currentUser!.uid;
+
       final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
 
       // Format times to strings
@@ -63,6 +66,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
       }).toList();
 
       await medicationDoc.set({
+        'user_id': userId, // เพิ่ม user_id
         'RFID_tag': widget.uid,
         'M_name': nameController.text,
         'Properties': propertiesController.text,
