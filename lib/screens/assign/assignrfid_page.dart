@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_nfc_kit/flutter_nfc_kit.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tagtime_medicare/screens/assign/assign_medicine_page.dart';
 
@@ -22,23 +21,20 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
     });
 
     try {
-      // เริ่มการสแกน NFC
-      NFCTag tag = await FlutterNfcKit.poll();
+      // Mockup RFID scanning
+      await Future.delayed(const Duration(seconds: 2)); // Simulate delay
+      String fakeUID = "UID123456789"; // Simulated RFID UID
 
-      // ดึง UID จาก NFC Tag
       setState(() {
-        scannedUID = tag.id; // UID ที่ได้จาก NFC Tag
+        scannedUID = fakeUID; // Assign the simulated UID
         isScanning = false;
       });
-
-      // ปิดการสแกน
-      await FlutterNfcKit.finish();
     } catch (e) {
       setState(() {
         isScanning = false;
       });
 
-      // แสดงข้อผิดพลาด
+      // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error scanning RFID: $e')),
       );
@@ -47,7 +43,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
 
   @override
   Widget build(BuildContext context) {
-    final userId = FirebaseAuth.instance.currentUser?.uid; // ดึง userId ปัจจุบัน
+    final userId = FirebaseAuth.instance.currentUser?.uid; // Get current userId
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFF4E0),
@@ -84,7 +80,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // สถานะการสแกน
+            // Scanning status
             if (isScanning)
               const CircularProgressIndicator()
             else if (scannedUID != null)
@@ -117,7 +113,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 ),
               ),
             const SizedBox(height: 20),
-            // ปุ่มสแกน
+            // Scan Button
             ElevatedButton(
               onPressed: scanRFID,
               style: ElevatedButton.styleFrom(
@@ -136,7 +132,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // ปุ่มไปหน้าถัดไป
+            // Next Button
             if (scannedUID != null)
               ElevatedButton(
                 onPressed: userId != null
@@ -147,7 +143,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                             builder: (context) => AssignMedicinePage(
                               uid: scannedUID!,
                               assignBy: widget.assignType,
-                              userId: userId, // ส่ง userId ไปยัง AssignMedicinePage
+                              userId: userId, // Pass userId to AssignMedicinePage
                             ),
                           ),
                         );
