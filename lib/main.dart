@@ -24,6 +24,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Tagtime Medicare',
       theme: ThemeData(
+        fontFamily: 'Poly', // ใช้ฟอนต์ Poly เป็นฟอนต์หลัก
         primarySwatch: Colors.brown,
       ),
       home: AuthWrapper(), // ใช้ AuthWrapper เป็นหน้าเริ่มต้น

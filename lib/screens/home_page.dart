@@ -4,8 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tagtime_medicare/screens/custom_navbar.dart';
 import 'package:tagtime_medicare/screens/history_page.dart';
 import 'package:tagtime_medicare/screens/profile_page.dart'; 
-import 'package:tagtime_medicare/screens/home_page_content.dart';
-import 'package:tagtime_medicare/screens/summary_page.dart'; // Import HomePageContent
+import 'package:tagtime_medicare/screens/RFID_screen.dart';
+import 'package:tagtime_medicare/screens/summary_page.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -28,16 +28,22 @@ class _HomePageState extends State<HomePage> {
       final user = FirebaseAuth.instance.currentUser;
 
       if (user != null) {
-        // Fetch First Name from Firestore
         DocumentSnapshot userData = await FirebaseFirestore.instance
             .collection('Users')
             .doc(user.uid)
             .get();
 
-        setState(() {
-          firstName = userData['Name'] ?? 'User';
-          isLoading = false;
-        });
+        if (userData.exists) {
+          setState(() {
+            firstName = userData['Name'] ?? 'User';
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            firstName = 'Guest';
+            isLoading = false;
+          });
+        }
       }
     } catch (e) {
       print('Error fetching user data: $e');
@@ -46,6 +52,14 @@ class _HomePageState extends State<HomePage> {
         isLoading = false;
       });
     }
+  }
+
+  void onRFIDDetected() {
+    print('RFID detected!');
+  }
+
+  void onAssignPressed() {
+    print('Assign button pressed!');
   }
 
   void onNavBarTap(int index) {
@@ -57,16 +71,29 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> _pages = [
-      HomePageContent(firstName: firstName), // แสดงข้อความ Hi, first name เฉพาะในหน้า Home
+      RFIDPage(
+        onRFIDDetected: onRFIDDetected,
+        onAssignPressed: onAssignPressed,
+        firstName: firstName,
+      ),
       SummaryPage(),
       HistoryPage(),
-      ProfilePage(), // หน้า ProfilePage ไม่มี Hi, first name
+      ProfilePage(),
     ];
 
     return Scaffold(
       backgroundColor: const Color(0xFFFEF4E0),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Loading user data...'),
+                ],
+              ),
+            )
           : _pages[_currentIndex],
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: _currentIndex,

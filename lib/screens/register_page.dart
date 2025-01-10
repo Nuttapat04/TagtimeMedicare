@@ -26,83 +26,67 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isPasswordHidden = true;
 
   Future<void> registerUser() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        isLoading = true;
+  if (_formKey.currentState!.validate()) {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // สร้างบัญชีใน Firebase Authentication
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: emailController.text.trim(),
+        password: passwordController.text.trim(),
+      );
+
+      // ดึง UID ของผู้ใช้ที่สร้างสำเร็จ
+      String uid = userCredential.user!.uid;
+
+      // เพิ่มข้อมูลใน Firestore
+      await _firestore.collection('Users').doc(uid).set({
+        'Username': usernameController.text.trim(),
+        'Email': emailController.text.trim(),
+        'Name': nameController.text.trim(),
+        'Surname': surnameController.text.trim(),
+        'Phone': phoneController.text.trim(),
+        'Date_of_Birth': selectedDate?.toIso8601String(),
+        'Created_at': FieldValue.serverTimestamp(),
+        'Role': 'user',
       });
 
-      try {
-        int age = DateTime.now().year - selectedDate!.year;
-        if (DateTime.now().month < selectedDate!.month ||
-            (DateTime.now().month == selectedDate!.month &&
-                DateTime.now().day < selectedDate!.day)) {
-          age--;
-        }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registration Successful!')),
+      );
 
-        // ตรวจสอบ Username และ Email ว่าซ้ำหรือไม่
-        final existingUser = await _firestore
-            .collection('Users')
-            .where('Username', isEqualTo: usernameController.text.trim())
-            .get();
-        if (existingUser.docs.isNotEmpty) {
-          throw Exception('Username is already taken');
-        }
-
-        final existingEmail = await _auth.fetchSignInMethodsForEmail(emailController.text.trim());
-        if (existingEmail.isNotEmpty) {
-          throw Exception('This email is already registered');
-        }
-
-        UserCredential userCredential =
-            await _auth.createUserWithEmailAndPassword(
-          email: emailController.text.trim(),
-          password: passwordController.text.trim(),
-        );
-
-        await _firestore.collection('Users').doc(userCredential.user!.uid).set({
-          'Username': usernameController.text.trim(),
-          'Email': emailController.text.trim(),
-          'Name': nameController.text.trim(),
-          'Surname': surnameController.text.trim(),
-          'Phone': phoneController.text.trim(),
-          'Date_of_Birth': selectedDate?.toIso8601String(),
-          'Age': age,
-          'Created_at': FieldValue.serverTimestamp(),
-          'Role': 'user',
-        });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration Successful!')),
-        );
-        Navigator.pop(context);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      } finally {
-        setState(() {
-          isLoading = false;
-        });
-      }
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: ${e.toString()}')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E1),
+      backgroundColor: const Color(0xFFFFF4E0),
       appBar: AppBar(
         title: Text(
           'Register',
           style: TextStyle(
             fontFamily: 'Roboto',
             fontWeight: FontWeight.bold,
-            color: const Color(0xFFC76355),
+            color: const Color(0xFFD84315),
           ),
         ),
         backgroundColor: const Color(0xFFFFF8E1),
         elevation: 0,
-        iconTheme: IconThemeData(color: const Color(0xFFC76355)),
+        iconTheme: IconThemeData(color: const Color(0xFFD84315)),
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
@@ -149,9 +133,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             return 'Password must be at least 8 characters';
                           }
                           final passwordRegex = RegExp(
-                              r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$');
+                              r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d]{8,}$');
                           if (!passwordRegex.hasMatch(value)) {
-                            return 'Password must contain uppercase, lowercase, number, and special character';
+                            return 'Password must contain uppercase, lowercase and number';
                           }
                           return null;
                         },
@@ -213,7 +197,7 @@ class _RegisterPageState extends State<RegisterPage> {
                       ElevatedButton(
                         onPressed: registerUser,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFC76355),
+                          backgroundColor: const Color(0xFFD84315),
                           minimumSize: Size(double.infinity, 50),
                         ),
                         child: Text(
@@ -245,7 +229,7 @@ class _RegisterPageState extends State<RegisterPage> {
         labelText: label,
         labelStyle: TextStyle(
           fontWeight: FontWeight.bold,
-          color: const Color(0xFFC76355),
+          color: const Color(0xFFD84315),
         ),
         border: OutlineInputBorder(),
       ),
@@ -266,13 +250,13 @@ class _RegisterPageState extends State<RegisterPage> {
         labelText: label,
         labelStyle: TextStyle(
           fontWeight: FontWeight.bold,
-          color: const Color(0xFFC76355),
+          color: const Color(0xFFD84315),
         ),
         border: OutlineInputBorder(),
         suffixIcon: IconButton(
           icon: Icon(
             _isPasswordHidden ? Icons.visibility_off : Icons.visibility,
-            color: const Color(0xFFC76355),
+            color: const Color(0xFFD84315),
           ),
           onPressed: () {
             setState(() {
@@ -296,7 +280,7 @@ class _RegisterPageState extends State<RegisterPage> {
         labelText: label,
         labelStyle: TextStyle(
           fontWeight: FontWeight.bold,
-          color: const Color(0xFFC76355),
+          color: const Color(0xFFD84315),
         ),
         border: OutlineInputBorder(),
       ),

@@ -27,92 +27,106 @@ class _WelcomePageState extends State<WelcomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFCEEE3), // พื้นหลังสีเดียวกับ Splash Screen
+      backgroundColor: const Color(0xFFFFF4E0), // พื้นหลังสีเดียวกับ Splash Screen
       body: SafeArea(
-        child: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0), // เพิ่มระยะขอบด้านข้าง
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center, // จัดให้อยู่ตรงกลาง
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Column(
                 children: [
-                  Image.asset(
-                    'images/LOGOAYD.png', // โลโก้
-                    height: 50,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'Welcome to',
-                    style: TextStyle(
-                      fontSize: 24,
-                      color: Color(0xFFD84315),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const Text(
-                    'Tagtime Medicare',
-                    style: TextStyle(
-                      fontSize: 32,
-                      color: Color(0xFFD84315),
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 20), // เพิ่มระยะห่างจากขอบด้านบน
+                  Center(
+                    child: Column(
+                      children: [
+                        Image.asset(
+                          'images/LOGOAYD.png', // โลโก้
+                          height: 40,
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Welcome to',
+                          style: TextStyle(
+                            fontSize: 24,
+                            color: Color(0xFFD84315),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const Text(
+                          'Tagtime Medicare',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: Color(0xFFD84315),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 32), // เพิ่มระยะห่างระหว่างโลโก้กับรูป
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    height: 250,
-                    width: 250,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFCCBC), // สีพื้นหลังรูป
-                      shape: BoxShape.circle,
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center, // ทำให้รูปอยู่ตรงกลาง
+                  children: [
+                    Image.asset(
+                      'images/welcome4.png', // รูปพื้นหลังใหม่
+                      height: 550, // ปรับขนาดรูป
+                      width: MediaQuery.of(context).size.width, // ปรับให้เต็มหน้าจอ
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
                     ),
-                  ),
-                  Image.asset(
-                    'images/welcome.png', // รูปภาพคน
-                    height: 200,
-                  ),
-                ],
+                  ],
+                ),
               ),
-              const SizedBox(height: 32), // เพิ่มระยะห่างระหว่างรูปกับปุ่ม
+              const SizedBox(height: 10), // ลดช่องว่างระหว่างรูปกับปุ่ม
               Column(
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/login');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD84315), // สีปุ่ม Log in
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25.0),
+                  Align(
+                    alignment: Alignment.center,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/login');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD84315), // สีปุ่ม Log in
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                        elevation: 5, // เพิ่มเงาให้ปุ่ม
+                        shadowColor: Colors.grey.withOpacity(0.5), // สีเงา
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 150, vertical: 15),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 50, vertical: 15),
-                    ),
-                    child: const Text(
-                      'Log in',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      child: const Text(
+                        'Log in',
+                        style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  OutlinedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/register');
-                    },
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFD84315)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(25.0),
+                  const SizedBox(height: 10), // ลดช่องว่างระหว่างปุ่ม
+                  Align(
+                    alignment: Alignment.center,
+                    child: OutlinedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/register');
+                      },
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFF4E0),
+                        side: const BorderSide(color: Color(0xFFD84315)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                        elevation: 5, // เพิ่มเงาให้ปุ่ม
+                        shadowColor: Colors.grey.withOpacity(0.5), // สีเงา
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 145, vertical: 15),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 50, vertical: 15),
-                    ),
-                    child: const Text(
-                      'Sign up',
-                      style: TextStyle(fontSize: 18, color: Color(0xFFD84315)),
+                      child: const Text(
+                        'Sign up',
+                        style: TextStyle(fontSize: 18, color: Color(0xFFD84315)),
+                      ),
                     ),
                   ),
                 ],

@@ -59,7 +59,12 @@ dev_dependencies:
 flutter:
   assets:
     - images/LOGOAYD.png
-    - images/welcome.png
+    - images/welcome1.png
+    - images/welcome2.png
+    - images/welcome3.png
+    - images/welcome4.png
+
+  
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -92,6 +97,11 @@ flutter:
   #       - asset: fonts/TrajanPro.ttf
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
+  fonts:
+    - family: Poly
+      fonts:
+        - asset: fonts/Poly-Regular.ttf
+        - asset: fonts/Poly-Italic.ttf
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

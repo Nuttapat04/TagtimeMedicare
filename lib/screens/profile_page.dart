@@ -133,7 +133,7 @@ class _ProfilePageState extends State<ProfilePage> {
                         color: Colors.grey),
                     onTap: () async {
                       await FirebaseAuth.instance.signOut();
-                      Navigator.pushReplacementNamed(context, '/login');
+                      Navigator.pushReplacementNamed(context, '/welcome');
                     },
                   ),
                 ],
