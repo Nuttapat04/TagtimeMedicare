@@ -3,8 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AssignMedicinePage extends StatefulWidget {
   final String uid;
+  final String assignBy;
+  final String userId; // เพิ่ม userId
 
-  AssignMedicinePage({required this.uid});
+  AssignMedicinePage({required this.uid, required this.assignBy, required this.userId});
 
   @override
   _AssignMedicinePageState createState() => _AssignMedicinePageState();
@@ -17,15 +19,8 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
   DateTime? startDate;
   DateTime? endDate;
   int frequency = 1;
+  List<TimeOfDay> times = [];
   int currentStep = 1;
-  List<TimeOfDay> notificationTimes = [TimeOfDay.now()];
-
-  void updateNotificationTimes() {
-    setState(() {
-      // Adjust the number of TimeOfDay objects based on frequency
-      notificationTimes = List.generate(frequency, (index) => TimeOfDay.now());
-    });
-  }
 
   Future<void> selectDateRange() async {
     final DateTimeRange? picked = await showDateRangePicker(
@@ -42,47 +37,106 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
   }
 
   Future<void> selectTime(int index) async {
-    final TimeOfDay? pickedTime = await showTimePicker(
+    final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: notificationTimes[index],
+      initialTime: TimeOfDay.now(),
     );
-    if (pickedTime != null) {
+    if (picked != null) {
       setState(() {
-        notificationTimes[index] = pickedTime;
+        times[index] = picked;
       });
     }
   }
 
   Future<void> saveToDatabase() async {
     try {
-      final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
+      final firestore = FirebaseFirestore.instance;
 
-      // Format times to strings
-      List<String> formattedTimes = notificationTimes.map((time) {
-        return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-      }).toList();
+      // ตรวจสอบว่ามี RFID_tag ซ้ำหรือไม่
+      final querySnapshot = await firestore
+          .collection('Medications')
+          .where('RFID_tag', isEqualTo: widget.uid)
+          .get();
 
-      await medicationDoc.set({
-        'RFID_tag': widget.uid,
+      if (querySnapshot.docs.isNotEmpty) {
+        final docId = querySnapshot.docs.first.id;
+        await firestore.collection('Medications').doc(docId).delete();
+      }
+
+      // เพิ่มข้อมูลใหม่ใน Medications
+      await firestore.collection('Medications').add({
         'M_name': nameController.text,
         'Properties': propertiesController.text,
         'Start_date': startDate,
         'End_date': endDate,
-        'Frequency': '$frequency times/day',
-        'Notification_times': formattedTimes,
-        'Created_at': Timestamp.now(),
-        'Updated_at': Timestamp.now(),
+        'Frequency': frequency,
+        'Notification_times': times
+            .map((time) => '${time.hour}:${time.minute}')
+            .toList(),
+        'RFID_tag': widget.uid,
+        'Assigned_by': widget.assignBy,
+        'UserId': widget.userId, // บันทึก UserId
+        'Created_at': DateTime.now(),
+        'Updated_at': DateTime.now(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Medication assigned successfully!')),
-      );
+      // อัปเดตข้อมูลใน Rfid_tags
+      final rfidQuerySnapshot = await firestore
+          .collection('Rfid_tags')
+          .where('Tag_id', isEqualTo: widget.uid)
+          .get();
 
-      Navigator.pop(context); // Go back after saving
+      if (rfidQuerySnapshot.docs.isNotEmpty) {
+        final rfidDocId = rfidQuerySnapshot.docs.first.id;
+        await firestore.collection('Rfid_tags').doc(rfidDocId).delete();
+      }
+
+      await firestore.collection('Rfid_tags').add({
+        'Tag_id': widget.uid,
+        'Medication_id': nameController.text,
+        'User_id': widget.userId, // บันทึก UserId
+        'Status': 'Active',
+        'Last_scanned': DateTime.now(),
+        'Assigned_by': widget.assignBy,
+      });
+
+      // แสดง popup ว่า success
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Success'),
+            content: const Text('Medicine assignment completed successfully.'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // ปิด dialog
+                  Navigator.of(context).pop(); // ปิดหน้าปัจจุบัน
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
     } catch (e) {
-      print('Error saving data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to assign medication!')),
+      // แสดง popup error
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Error'),
+            content: Text('Failed to save data: $e'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // ปิด dialog
+                },
+                child: const Text('OK'),
+              ),
+            ],
+          );
+        },
       );
     }
   }
@@ -145,26 +199,22 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
           ),
         ),
         const Spacer(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const SizedBox(width: 1),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  currentStep = 2;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD84315),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Next',
-                style: TextStyle(color: Colors.white),
-              ),
+        Center(
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                currentStep = 2;
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD84315),
+              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
             ),
-          ],
+            child: const Text(
+              'Next',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
         ),
       ],
     );
@@ -219,7 +269,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
               onPressed: () {
                 setState(() {
                   currentStep = 3;
-                  updateNotificationTimes();
+                  times = List.generate(frequency, (_) => TimeOfDay.now());
                 });
               },
               style: ElevatedButton.styleFrom(
@@ -239,10 +289,10 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
 
   Widget buildStep3() {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Select Frequency & Times',
+          'Select Frequency and Times',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -251,7 +301,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
         ),
         const SizedBox(height: 20),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             const Text(
               'Frequency: ',
@@ -272,32 +322,27 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
               onChanged: (value) {
                 setState(() {
                   frequency = value!;
-                  updateNotificationTimes();
+                  times = List.generate(frequency, (_) => TimeOfDay.now());
                 });
               },
             ),
           ],
         ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: notificationTimes.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text('Time ${index + 1}'),
-                trailing: ElevatedButton(
-                  onPressed: () => selectTime(index),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD84315),
-                  ),
-                  child: Text(
-                    '${notificationTimes[index].hour.toString().padLeft(2, '0')}:${notificationTimes[index].minute.toString().padLeft(2, '0')}',
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              );
-            },
+        const SizedBox(height: 20),
+        Column(
+          children: List.generate(
+            frequency,
+            (index) => ElevatedButton(
+              onPressed: () => selectTime(index),
+              child: Text(
+                times[index] != null
+                    ? 'Time ${index + 1}: ${times[index].format(context)}'
+                    : 'Select Time ${index + 1}',
+              ),
+            ),
           ),
         ),
+        const Spacer(),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [

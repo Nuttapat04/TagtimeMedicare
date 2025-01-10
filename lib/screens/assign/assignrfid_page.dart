@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tagtime_medicare/screens/assign/assign_medicine_page.dart';
 
 class AssignRFIDPage extends StatefulWidget {
-  final String assignType; // รับค่า assignType จากหน้าที่แล้ว
+  final String assignType;
 
   AssignRFIDPage({required this.assignType});
 
@@ -14,23 +15,36 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
   String? scannedUID;
   bool isScanning = false;
 
-  void scanRFID() async {
+  Future<void> scanRFID() async {
     setState(() {
       isScanning = true;
     });
 
-    // จำลองการสแกน RFID
-    await Future.delayed(Duration(seconds: 2));
-    String fakeUID = "UID123456789"; // แทนที่ด้วย UID จริงจากการสแกน
+    try {
+      // Mockup RFID scanning
+      await Future.delayed(const Duration(seconds: 2)); // Simulate delay
+      String fakeUID = "UID123456789"; // Simulated RFID UID
 
-    setState(() {
-      scannedUID = fakeUID;
-      isScanning = false;
-    });
+      setState(() {
+        scannedUID = fakeUID; // Assign the simulated UID
+        isScanning = false;
+      });
+    } catch (e) {
+      setState(() {
+        isScanning = false;
+      });
+
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error scanning RFID: $e')),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final userId = FirebaseAuth.instance.currentUser?.uid; // Get current userId
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF4E0),
       appBar: AppBar(
@@ -47,12 +61,8 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
         iconTheme: const IconThemeData(color: Color(0xFFD84315)),
       ),
       body: Center(
-        // ใช้ Center widget หุ้ม Column เพื่อจัดให้อยู่ตรงกลาง
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center, // จัดให้อยู่ตรงกลางแนวตั้ง
-          crossAxisAlignment:
-              CrossAxisAlignment.center, // จัดให้อยู่ตรงกลางแนวนอน
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Logo
             Image.asset(
@@ -60,7 +70,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               height: 50,
             ),
             const SizedBox(height: 20),
-            // แสดง Assign Type
+            // Assign Type
             Text(
               'Assign Type: ${widget.assignType}',
               style: const TextStyle(
@@ -70,7 +80,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // สถานะการสแกน RFID
+            // Scanning status
             if (isScanning)
               const CircularProgressIndicator()
             else if (scannedUID != null)
@@ -103,7 +113,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 ),
               ),
             const SizedBox(height: 20),
-            // ปุ่มสแกน RFID
+            // Scan Button
             ElevatedButton(
               onPressed: scanRFID,
               style: ElevatedButton.styleFrom(
@@ -111,8 +121,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25.0),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
               child: const Text(
                 'SCAN RFID',
@@ -123,25 +132,34 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // ปุ่มไปหน้าถัดไป
+            // Next Button
             if (scannedUID != null)
               ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          AssignMedicinePage(uid: scannedUID!),
-                    ),
-                  );
-                },
+                onPressed: userId != null
+                    ? () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AssignMedicinePage(
+                              uid: scannedUID!,
+                              assignBy: widget.assignType,
+                              userId: userId, // Pass userId to AssignMedicinePage
+                            ),
+                          ),
+                        );
+                      }
+                    : () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Error: User is not logged in')),
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueGrey,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25.0),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                 ),
                 child: const Text(
                   'NEXT',
