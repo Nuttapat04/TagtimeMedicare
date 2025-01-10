@@ -9,9 +9,11 @@ import 'package:tagtime_medicare/screens/login_page.dart';
 import 'package:tagtime_medicare/screens/register_page.dart';
 import 'package:tagtime_medicare/screens/forgetpassword_screen.dart';
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  print('App starting...'); // เพิ่ม debug print
   runApp(MyApp());
 }
 
