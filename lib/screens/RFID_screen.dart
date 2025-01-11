@@ -24,12 +24,12 @@ class RFIDPage extends StatelessWidget {
         title: const Text(
           'Place RFID',
           style: TextStyle(
-            color: Color(0xFFD84315),
+            color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFFD84315)),
+        iconTheme: const IconThemeData(color: Color(0xFFC76355)),
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -52,7 +52,7 @@ class RFIDPage extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFFD84315),
+                      color: Color(0xFFC76355),
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -70,7 +70,7 @@ class RFIDPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFFD84315),
+                    color: Color(0xFFC76355),
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -82,7 +82,7 @@ class RFIDPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFFD84315),
+                    color: Color(0xFFC76355),
                   ),
                   textAlign: TextAlign.center,
                 ),

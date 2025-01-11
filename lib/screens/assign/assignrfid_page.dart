@@ -21,7 +21,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
 
     // จำลองการสแกน RFID
     await Future.delayed(Duration(seconds: 2));
-    String fakeUID = "UID123456789"; // แทนที่ด้วย UID จริงจากการสแกน
+    String fakeUID = "UID${DateTime.now().millisecondsSinceEpoch}"; // แทนที่ด้วย UID จริงจากการสแกน
 
     setState(() {
       scannedUID = fakeUID;
@@ -39,20 +39,17 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
         title: const Text(
           'Assign RFID',
           style: TextStyle(
-            color: Color(0xFFD84315),
+            color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFFD84315)),
+        iconTheme: const IconThemeData(color: Color(0xFFC76355)),
       ),
       body: Center(
-        // ใช้ Center widget หุ้ม Column เพื่อจัดให้อยู่ตรงกลาง
         child: Column(
-          mainAxisAlignment:
-              MainAxisAlignment.center, // จัดให้อยู่ตรงกลางแนวตั้ง
-          crossAxisAlignment:
-              CrossAxisAlignment.center, // จัดให้อยู่ตรงกลางแนวนอน
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Logo
             Image.asset(
@@ -66,7 +63,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFD84315),
+                color: Color(0xFFC76355),
               ),
             ),
             const SizedBox(height: 20),
@@ -89,7 +86,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFD84315),
+                      color: Color(0xFFC76355),
                     ),
                   ),
                 ],
@@ -99,7 +96,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 'Press "Scan RFID" to begin',
                 style: TextStyle(
                   fontSize: 18,
-                  color: Color(0xFFD84315),
+                  color: Color(0xFFC76355),
                 ),
               ),
             const SizedBox(height: 20),
@@ -111,8 +108,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25.0),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
               child: const Text(
                 'SCAN RFID',
@@ -127,6 +123,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
             if (scannedUID != null)
               ElevatedButton(
                 onPressed: () {
+                  // ส่ง UID ไปยังหน้าถัดไป (AssignMedicinePage)
                   Navigator.push(
                     context,
                     MaterialPageRoute(

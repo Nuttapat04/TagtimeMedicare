@@ -3,6 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class HistoryPage extends StatefulWidget {
+  final String userId;
+
+  HistoryPage({required this.userId});
+
   @override
   _HistoryPageState createState() => _HistoryPageState();
 }
@@ -26,52 +30,38 @@ class _HistoryPageState extends State<HistoryPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFFFF4E0),
+      backgroundColor: const Color(0xFFFEF4E0),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFFEF4E0),
+        title: const Text(
+          "Your Medicines",
+          style: TextStyle(color: Color(0xFFC76355)),
+        ),
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Color(0xFFC76355)),
+        elevation: 0,
+      ),
       body: Column(
         children: [
-          // โลโก้และข้อความ
-          Column(
-            children: [
-              Image.asset(
-                'images/LOGOAYD.png', // เส้นทางของโลโก้
-                height: 70, // ขนาดความสูงของโลโก้
-              ),
-              SizedBox(height: 0), // ระยะห่างระหว่างโลโก้กับข้อความ
-              Text(
-                "Test",
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF763355),
-                ),
-              ),
+          const SizedBox(height: 20),
+          TabBar(
+            controller: _tabController,
+            indicatorColor: const Color(0xFFC76355),
+            labelColor: const Color(0xFFC76355),
+            unselectedLabelColor: Colors.grey,
+            labelStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            tabs: const [
+              Tab(text: 'List'),
+              Tab(text: 'History'),
             ],
           ),
           Expanded(
-            child: Scaffold(
-              backgroundColor: Color(0xFFFFF4E0),
-              appBar: AppBar(
-                backgroundColor: Color(0xFFFFF4E0),
-                elevation: 0,
-                centerTitle: true,
-                bottom: TabBar(
-                  controller: _tabController,
-                  indicatorColor: Color(0xFF763355),
-                  labelColor: Color(0xFF763355),
-                  unselectedLabelColor: Colors.grey,
-                  tabs: [
-                    Tab(text: 'List'),
-                    Tab(text: 'History'),
-                  ],
-                ),
-              ),
-              body: TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildListPage(),
-                  _buildHistoryPage(),
-                ],
-              ),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildListPage(),
+                _buildHistoryPage(),
+              ],
             ),
           ),
         ],
@@ -81,21 +71,22 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget _buildListPage() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('Medications').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('Medications')
+          .where('user_id', isEqualTo: widget.userId)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         final medications = snapshot.data!.docs;
 
         if (medications.isEmpty) {
-          return Center(
+          return const Center(
             child: Text(
-              'ไม่มีรายการยา',
-              style: TextStyle(fontSize: 24),
+              'No medications found',
+              style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
             ),
           );
         }
@@ -104,19 +95,77 @@ class _HistoryPageState extends State<HistoryPage>
           itemCount: medications.length,
           itemBuilder: (context, index) {
             final med = medications[index].data() as Map<String, dynamic>;
-            final name = med['M_name'] ?? 'ไม่มีชื่อยา';
+            final name = med['M_name'] ?? 'No name';
             final time = med['Notification_times'] ?? [];
+            final startDate = med['Start_date'] is Timestamp
+                ? (med['Start_date'] as Timestamp).toDate()
+                : DateTime.now();
+            final endDate = med['End_date'] is Timestamp
+                ? (med['End_date'] as Timestamp).toDate()
+                : DateTime.now();
+            final frequency = med['Frequency'] ?? '1 time/day';
+
+            final formattedStartDate =
+                DateFormat('dd/MM/yyyy').format(startDate);
+            final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
 
             return Card(
-              margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              child: ListTile(
-                title: Text(
-                  name,
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(
-                  'เวลาแจ้งเตือน: ${time is List ? time.join(', ') : 'ไม่ระบุ'}',
-                  style: TextStyle(color: Colors.grey),
+              margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFC76355),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Frequency: $frequency',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: Color(0xFFC76355),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Times: ${time.join(', ')}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Dates: $formattedStartDate to $formattedEndDate',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit, size: 30, color: Color(0xFFC76355)),
+                      onPressed: () =>
+                          _showEditDialog(medications[index].id, med),
+                    ),
+                  ],
                 ),
               ),
             );
@@ -128,96 +177,64 @@ class _HistoryPageState extends State<HistoryPage>
 
   Widget _buildHistoryPage() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('Medications').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('Medication_history')
+          .where('User_id', isEqualTo: widget.userId)
+          .orderBy('Intake_time', descending: true)
+          .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
-        final medications = snapshot.data!.docs;
+        final history = snapshot.data!.docs;
 
-        if (medications.isEmpty) {
-          return Center(
+        if (history.isEmpty) {
+          return const Center(
             child: Text(
-              'ยังไม่มีประวัติ',
-              style: TextStyle(fontSize: 24),
+              'No medication history found',
+              style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
             ),
           );
         }
 
-        Map<String, List<Map<String, dynamic>>> groupedMedications = {};
-        for (var doc in medications) {
-          final med = doc.data() as Map<String, dynamic>;
-
-          String dateKey;
-          try {
-            dateKey = med['Start_date'] is Timestamp
-                ? (med['Start_date'] as Timestamp).toDate().toString().split(' ')[0]
-                : DateTime.parse(med['Start_date']).toString().split(' ')[0];
-          } catch (e) {
-            dateKey = 'Invalid Date';
-          }
-
-          if (dateKey != 'Invalid Date') {
-            if (groupedMedications[dateKey] == null) {
-              groupedMedications[dateKey] = [];
-            }
-            groupedMedications[dateKey]!.add(med);
-          }
-        }
-
-        List<String> sortedDates = groupedMedications.keys.toList()
-          ..sort((a, b) => DateTime.parse(b).compareTo(DateTime.parse(a)));
-
         return ListView.builder(
-          itemCount: sortedDates.length,
+          itemCount: history.length,
           itemBuilder: (context, index) {
-            String date = sortedDates[index];
-            List<Map<String, dynamic>> meds = groupedMedications[date]!;
+            final entry = history[index].data() as Map<String, dynamic>;
+            final status = entry['Status'] ?? 'Missed';
+            final time = (entry['Intake_time'] as Timestamp).toDate();
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    DateFormat('dd/MM/yyyy').format(DateTime.parse(date)),
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF763355),
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  ...meds.map((med) {
-                    final name = med['M_name'] ?? 'ไม่มีชื่อยา';
-                    final frequency = med['Frequency'] ?? 'ไม่ระบุ';
-                    final notificationTimes = med['Notification_times'] ?? [];
-
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 4),
-                      child: ListTile(
-                        title: Text(
-                          name,
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('จำนวนครั้ง: $frequency'),
-                            Text(
-                              'เวลาแจ้งเตือน: ${notificationTimes is List ? notificationTimes.join(', ') : 'ไม่ระบุ'}',
-                              style: TextStyle(color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                        trailing: Icon(Icons.check_circle, color: Colors.green),
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Status: $status',
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFC76355),
                       ),
-                    );
-                  }).toList(),
-                ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Time: ${DateFormat('hh:mm a on dd/MM/yyyy').format(time)}',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        color: Color(0xFFC76355),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
@@ -225,4 +242,204 @@ class _HistoryPageState extends State<HistoryPage>
       },
     );
   }
-} 
+
+  void _showEditDialog(String docId, Map<String, dynamic> medData) {
+  final nameController = TextEditingController(text: medData['M_name']);
+  final propertiesController =
+      TextEditingController(text: medData['Properties']);
+  DateTime? startDate = medData['Start_date'] is Timestamp
+      ? (medData['Start_date'] as Timestamp).toDate()
+      : DateTime.now();
+  DateTime? endDate = medData['End_date'] is Timestamp
+      ? (medData['End_date'] as Timestamp).toDate()
+      : DateTime.now();
+  int frequency = int.tryParse(medData['Frequency']?.split(' ')[0] ?? '1') ?? 1;
+  List<TimeOfDay> notificationTimes = (medData['Notification_times'] as List)
+      .map((timeString) {
+    final timeParts = timeString.split(':');
+    return TimeOfDay(
+      hour: int.parse(timeParts[0]),
+      minute: int.parse(timeParts[1]),
+    );
+  }).toList();
+
+  // ตั้งค่า Default Notification Times
+  final defaultTimesForFrequency2 = [
+    const TimeOfDay(hour: 8, minute: 0),
+    const TimeOfDay(hour: 19, minute: 0),
+  ];
+
+  final defaultTimesForFrequency3 = [
+    const TimeOfDay(hour: 8, minute: 0),
+    const TimeOfDay(hour: 13, minute: 0),
+    const TimeOfDay(hour: 19, minute: 0),
+  ];
+
+  final defaultTimesForFrequency4 = [
+    const TimeOfDay(hour: 8, minute: 0),
+    const TimeOfDay(hour: 13, minute: 0),
+    const TimeOfDay(hour: 19, minute: 0),
+    const TimeOfDay(hour: 21, minute: 0),
+  ];
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFFFEF4E0),
+            title: const Text(
+              'Edit Medication',
+              style: TextStyle(color: Color(0xFFC76355)),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: propertiesController,
+                    decoration: const InputDecoration(labelText: 'Properties'),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final DateTimeRange? picked = await showDateRangePicker(
+                        context: context,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                        initialDateRange: DateTimeRange(
+                          start: startDate!,
+                          end: endDate!,
+                        ),
+                      );
+                      if (picked != null) {
+                        setDialogState(() {
+                          startDate = picked.start;
+                          endDate = picked.end;
+                        });
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFC76355),
+                    ),
+                    child: Text(
+                      startDate != null && endDate != null
+                          ? '${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)}'
+                          : 'Select Date Range',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Text(
+                        'Frequency:',
+                        style: TextStyle(color: Color(0xFFC76355)),
+                      ),
+                      const SizedBox(width: 10),
+                      DropdownButton<int>(
+                        value: frequency,
+                        items: List.generate(4, (index) {
+                          return DropdownMenuItem<int>(
+                            value: index + 1,
+                            child: Text('${index + 1} times/day'),
+                          );
+                        }),
+                        onChanged: (value) {
+                          setDialogState(() {
+                            frequency = value!;
+                            if (frequency == 4) {
+                              notificationTimes = defaultTimesForFrequency4;
+                            } else if (frequency == 3) {
+                              notificationTimes = defaultTimesForFrequency3;
+                            } else if (frequency == 2) {
+                              notificationTimes = defaultTimesForFrequency2;
+                            } else {
+                              notificationTimes = List.generate(
+                                frequency,
+                                (_) => TimeOfDay.now(),
+                              );
+                            }
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Column(
+                    children: List.generate(notificationTimes.length, (index) {
+                      return ElevatedButton(
+                        onPressed: () async {
+                          final TimeOfDay? pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: notificationTimes[index],
+                          );
+                          if (pickedTime != null) {
+                            setDialogState(() {
+                              notificationTimes[index] = pickedTime;
+                            });
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC76355),
+                        ),
+                        child: Text(
+                          'Time ${index + 1}: ${notificationTimes[index].format(context)}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Color(0xFFC76355)),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  await FirebaseFirestore.instance
+                      .collection('Medications')
+                      .doc(docId)
+                      .update({
+                    'M_name': nameController.text,
+                    'Properties': propertiesController.text,
+                    'Start_date': startDate,
+                    'End_date': endDate,
+                    'Frequency': '$frequency times/day',
+                    'Notification_times': notificationTimes.map((time) {
+                      return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+                    }).toList(),
+                    'Updated_at': Timestamp.now(),
+                  });
+
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Medication updated successfully!')),
+                  );
+                },
+                child: const Text(
+                  'Save',
+                  style: TextStyle(color: Color(0xFFC76355)),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+}

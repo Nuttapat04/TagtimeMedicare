@@ -18,12 +18,24 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
   DateTime? startDate;
   DateTime? endDate;
   int frequency = 1;
-  int currentStep = 1;
-  List<TimeOfDay> notificationTimes = [TimeOfDay.now()];
+  List<TimeOfDay> notificationTimes = [TimeOfDay(hour: 8, minute: 0)];
 
   void updateNotificationTimes() {
     setState(() {
-      notificationTimes = List.generate(frequency, (index) => TimeOfDay.now());
+      if (frequency == 1) {
+        notificationTimes = [TimeOfDay(hour: 8, minute: 0)];
+      } else if (frequency == 2) {
+        notificationTimes = [TimeOfDay(hour: 8, minute: 0), TimeOfDay(hour: 19, minute: 0)];
+      } else if (frequency == 3) {
+        notificationTimes = [TimeOfDay(hour: 8, minute: 0), TimeOfDay(hour: 13, minute: 0), TimeOfDay(hour: 19, minute: 0)];
+      } else if (frequency == 4) {
+        notificationTimes = [
+          TimeOfDay(hour: 8, minute: 0),
+          TimeOfDay(hour: 12, minute: 0),
+          TimeOfDay(hour: 16, minute: 0),
+          TimeOfDay(hour: 20, minute: 0)
+        ];
+      }
     });
   }
 
@@ -41,32 +53,17 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
     }
   }
 
-  Future<void> selectTime(int index) async {
-    final TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: notificationTimes[index],
-    );
-    if (pickedTime != null) {
-      setState(() {
-        notificationTimes[index] = pickedTime;
-      });
-    }
-  }
-
   Future<void> saveToDatabase() async {
     try {
-      // ดึง user_id ของผู้ใช้ที่ล็อกอินอยู่
       final String userId = FirebaseAuth.instance.currentUser!.uid;
-
       final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
 
-      // Format times to strings
       List<String> formattedTimes = notificationTimes.map((time) {
         return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
       }).toList();
 
       await medicationDoc.set({
-        'user_id': userId, // เพิ่ม user_id
+        'user_id': userId,
         'RFID_tag': widget.uid,
         'M_name': nameController.text,
         'Properties': propertiesController.text,
@@ -82,7 +79,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
         SnackBar(content: Text('Medication assigned successfully!')),
       );
 
-      Navigator.pop(context); // Go back after saving
+      Navigator.pop(context);
     } catch (e) {
       print('Error saving data: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -97,243 +94,151 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
       backgroundColor: const Color(0xFFFFF4E0),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFF8E1),
-        elevation: 0,
         title: Text(
-          'Assign Medicine - Step $currentStep/3',
+          'Assign Medicine',
           style: const TextStyle(
-            color: Color(0xFFD84315),
+            color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFFD84315)),
+        iconTheme: const IconThemeData(color: Color(0xFFC76355)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: currentStep == 1
-            ? buildStep1()
-            : currentStep == 2
-                ? buildStep2()
-                : buildStep3(),
-      ),
-    );
-  }
-
-  Widget buildStep1() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'RFID UID: ${widget.uid}',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFD84315),
-          ),
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: propertiesController,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'Properties',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const Spacer(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(width: 1),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  currentStep = 2;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD84315),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Next',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget buildStep2() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const Text(
-          'Select Date Range',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFD84315),
-          ),
-        ),
-        const SizedBox(height: 30),
-        ElevatedButton(
-          onPressed: selectDateRange,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFD84315),
-            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-          ),
-          child: Text(
-            startDate != null && endDate != null
-                ? '${startDate!.toLocal().toString().split(' ')[0]} - ${endDate!.toLocal().toString().split(' ')[0]}'
-                : 'Select Date Range',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        const Spacer(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  currentStep = 1;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Back',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  currentStep = 3;
-                  updateNotificationTimes();
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD84315),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Next',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget buildStep3() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const Text(
-          'Select Frequency & Times',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFD84315),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Frequency: ',
-              style: TextStyle(
-                fontSize: 18,
+            Text(
+              'UID: ${widget.uid}',
+              style: const TextStyle(
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFD84315),
+                color: Color(0xFFC76355),
               ),
             ),
-            DropdownButton<int>(
-              value: frequency,
-              items: List.generate(4, (index) {
-                return DropdownMenuItem<int>(
-                  value: index + 1,
-                  child: Text('${index + 1} times/day'),
-                );
-              }),
-              onChanged: (value) {
-                setState(() {
-                  frequency = value!;
-                  updateNotificationTimes();
-                });
-              },
+            const SizedBox(height: 20),
+            
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Medicine Name',
+                border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Color(0xFFC76355)),
+              ),
             ),
-          ],
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: notificationTimes.length,
-            itemBuilder: (context, index) {
-              return ListTile(
-                title: Text('Time ${index + 1}'),
-                trailing: ElevatedButton(
-                  onPressed: () => selectTime(index),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD84315),
-                  ),
-                  child: Text(
-                    '${notificationTimes[index].hour.toString().padLeft(2, '0')}:${notificationTimes[index].minute.toString().padLeft(2, '0')}',
-                    style: const TextStyle(color: Colors.white),
+            const SizedBox(height: 16),
+            
+            TextField(
+              controller: propertiesController,
+              decoration: const InputDecoration(
+                labelText: 'Properties',
+                border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Color(0xFFC76355)),
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+            
+            ElevatedButton(
+              onPressed: selectDateRange,
+              child: Text(
+                'Select Date Range: ${startDate != null && endDate != null ? '${startDate!.toLocal().toString().split(' ')[0]} to ${endDate!.toLocal().toString().split(' ')[0]}' : 'Select Dates'}',
+                style: const TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD84315),
+              ),
+            ),
+            const SizedBox(height: 20),
+            
+            Row(
+              children: [
+                const Text(
+                  'Frequency: ',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFC76355),
                   ),
                 ),
-              );
-            },
-          ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  currentStep = 2;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Back',
-                style: TextStyle(color: Colors.white),
+                DropdownButton<int>(
+                  value: frequency,
+                  items: List.generate(4, (index) {
+                    return DropdownMenuItem<int>(
+                      value: index + 1,
+                      child: Text('${index + 1} times/day'),
+                    );
+                  }),
+                  onChanged: (value) {
+                    setState(() {
+                      frequency = value!;
+                      updateNotificationTimes();
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            Expanded(
+              flex: 2,
+              child: ListView.builder(
+                itemCount: notificationTimes.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text('Time ${index + 1}'),
+                    trailing: ElevatedButton(
+                      onPressed: () async {
+                        final TimeOfDay? pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: notificationTimes[index],
+                        );
+                        if (pickedTime != null) {
+                          setState(() {
+                            notificationTimes[index] = pickedTime;
+                          });
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD84315),
+                      ),
+                      child: Text(
+                        '${notificationTimes[index].hour.toString().padLeft(2, '0')}:${notificationTimes[index].minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-            ElevatedButton(
-              onPressed: saveToDatabase,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD84315),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Finish',
-                style: TextStyle(color: Colors.white),
+            
+            const SizedBox(height: 30),
+            
+            Padding(
+              padding: const EdgeInsets.only(bottom: 40.0),
+              child: Center(
+                child: ElevatedButton(
+                  onPressed: saveToDatabase,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD84315),
+                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                    minimumSize: const Size(200, 50),
+                  ),
+                  child: const Text(
+                    'Save Medication',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

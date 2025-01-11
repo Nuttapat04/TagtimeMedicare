@@ -12,7 +12,7 @@ class AssignPage extends StatelessWidget {
         title: const Text(
           'Assign',
           style: TextStyle(
-            color: Color(0xFFD84315),
+            color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -35,7 +35,7 @@ class AssignPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFD84315),
+              color: Color(0xFFC76355),
             ),
           ),
           const SizedBox(height: 70),
