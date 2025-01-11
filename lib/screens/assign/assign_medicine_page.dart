@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AssignMedicinePage extends StatefulWidget {
   final String uid;
-  final String assignBy;
-  final String userId; // เพิ่ม userId
+  final String assignType;
+  final String? caregiverId;
+  final String? caregiverName;
 
-  AssignMedicinePage({required this.uid, required this.assignBy, required this.userId});
+  AssignMedicinePage({
+    required this.uid,
+    required this.assignType,
+    this.caregiverId,
+    this.caregiverName,
+  });
 
   @override
   _AssignMedicinePageState createState() => _AssignMedicinePageState();
@@ -19,8 +26,26 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
   DateTime? startDate;
   DateTime? endDate;
   int frequency = 1;
-  List<TimeOfDay> times = [];
-  int currentStep = 1;
+  List<TimeOfDay> notificationTimes = [TimeOfDay(hour: 8, minute: 0)];
+
+  void updateNotificationTimes() {
+    setState(() {
+      if (frequency == 1) {
+        notificationTimes = [TimeOfDay(hour: 8, minute: 0)];
+      } else if (frequency == 2) {
+        notificationTimes = [TimeOfDay(hour: 8, minute: 0), TimeOfDay(hour: 19, minute: 0)];
+      } else if (frequency == 3) {
+        notificationTimes = [TimeOfDay(hour: 8, minute: 0), TimeOfDay(hour: 13, minute: 0), TimeOfDay(hour: 19, minute: 0)];
+      } else if (frequency == 4) {
+        notificationTimes = [
+          TimeOfDay(hour: 8, minute: 0),
+          TimeOfDay(hour: 12, minute: 0),
+          TimeOfDay(hour: 16, minute: 0),
+          TimeOfDay(hour: 20, minute: 0)
+        ];
+      }
+    });
+  }
 
   Future<void> selectDateRange() async {
     final DateTimeRange? picked = await showDateRangePicker(
@@ -36,110 +61,58 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
     }
   }
 
-  Future<void> selectTime(int index) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) {
-      setState(() {
-        times[index] = picked;
-      });
-    }
-  }
-
   Future<void> saveToDatabase() async {
     try {
-      final firestore = FirebaseFirestore.instance;
+      final String userId = FirebaseAuth.instance.currentUser!.uid;
+      final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
+      final rfidDoc = FirebaseFirestore.instance.collection('Rfid_tags').doc();
 
-      // ตรวจสอบว่ามี RFID_tag ซ้ำหรือไม่
-      final querySnapshot = await firestore
-          .collection('Medications')
-          .where('RFID_tag', isEqualTo: widget.uid)
-          .get();
+      List<String> formattedTimes = notificationTimes.map((time) {
+        return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+      }).toList();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        final docId = querySnapshot.docs.first.id;
-        await firestore.collection('Medications').doc(docId).delete();
-      }
-
-      // เพิ่มข้อมูลใหม่ใน Medications
-      await firestore.collection('Medications').add({
+      // บันทึกข้อมูลยาใน Medications collection
+      await medicationDoc.set({
+        'user_id': userId,
+        'RFID_tag': widget.uid,
         'M_name': nameController.text,
         'Properties': propertiesController.text,
         'Start_date': startDate,
         'End_date': endDate,
-        'Frequency': frequency,
-        'Notification_times': times
-            .map((time) => '${time.hour}:${time.minute}')
-            .toList(),
-        'RFID_tag': widget.uid,
-        'Assigned_by': widget.assignBy,
-        'UserId': widget.userId, // บันทึก UserId
-        'Created_at': DateTime.now(),
-        'Updated_at': DateTime.now(),
+        'Frequency': '$frequency times/day',
+        'Notification_times': formattedTimes,
+        'Assigned_by': widget.assignType,
+        'Caregiver_id': widget.caregiverId, // เพิ่มข้อมูล caregiver ถ้ามี
+        'Caregiver_name': widget.caregiverName,
+        'Created_at': Timestamp.now(),
+        'Updated_at': Timestamp.now(),
       });
 
-      // อัปเดตข้อมูลใน Rfid_tags
-      final rfidQuerySnapshot = await firestore
-          .collection('Rfid_tags')
-          .where('Tag_id', isEqualTo: widget.uid)
-          .get();
-
-      if (rfidQuerySnapshot.docs.isNotEmpty) {
-        final rfidDocId = rfidQuerySnapshot.docs.first.id;
-        await firestore.collection('Rfid_tags').doc(rfidDocId).delete();
-      }
-
-      await firestore.collection('Rfid_tags').add({
+      // บันทึกข้อมูล RFID tag
+      await rfidDoc.set({
         'Tag_id': widget.uid,
-        'Medication_id': nameController.text,
-        'User_id': widget.userId, // บันทึก UserId
         'Status': 'Active',
-        'Last_scanned': DateTime.now(),
-        'Assigned_by': widget.assignBy,
+        'User_id': userId,
+        'Assign_by': widget.assignType,
+        'Medication_id': nameController.text,
+        'Last_scanned': Timestamp.now(),
       });
 
-      // แสดง popup ว่า success
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Success'),
-            content: const Text('Medicine assignment completed successfully.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // ปิด dialog
-                  Navigator.of(context).pop(); // ปิดหน้าปัจจุบัน
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Medication assigned successfully!')),
       );
+
+      // Navigate back to home or desired screen
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
     } catch (e) {
-      // แสดง popup error
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Error'),
-            content: Text('Failed to save data: $e'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // ปิด dialog
-                },
-                child: const Text('OK'),
-              ),
-            ],
-          );
-        },
+      print('Error saving data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to assign medication!')),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -147,234 +120,151 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
       backgroundColor: const Color(0xFFFFF4E0),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFF8E1),
-        elevation: 0,
         title: Text(
-          'Assign Medicine - Step $currentStep/3',
+          'Assign Medicine',
           style: const TextStyle(
-            color: Color(0xFFD84315),
+            color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFFD84315)),
+        iconTheme: const IconThemeData(color: Color(0xFFC76355)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: currentStep == 1
-            ? buildStep1()
-            : currentStep == 2
-                ? buildStep2()
-                : buildStep3(),
-      ),
-    );
-  }
-
-  Widget buildStep1() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'RFID UID: ${widget.uid}',
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFD84315),
-          ),
-        ),
-        const SizedBox(height: 20),
-        TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: propertiesController,
-          maxLines: 3,
-          decoration: const InputDecoration(
-            labelText: 'Properties',
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const Spacer(),
-        Center(
-          child: ElevatedButton(
-            onPressed: () {
-              setState(() {
-                currentStep = 2;
-              });
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFD84315),
-              padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-            ),
-            child: const Text(
-              'Next',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget buildStep2() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        const Text(
-          'Select Date Range',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFD84315),
-          ),
-        ),
-        const SizedBox(height: 30),
-        ElevatedButton(
-          onPressed: selectDateRange,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFD84315),
-            padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
-          ),
-          child: Text(
-            startDate != null && endDate != null
-                ? '${startDate!.toLocal().toString().split(' ')[0]} - ${endDate!.toLocal().toString().split(' ')[0]}'
-                : 'Select Date Range',
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        const Spacer(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  currentStep = 1;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Back',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  currentStep = 3;
-                  times = List.generate(frequency, (_) => TimeOfDay.now());
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD84315),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Next',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget buildStep3() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Select Frequency and Times',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFD84315),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const Text(
-              'Frequency: ',
-              style: TextStyle(
-                fontSize: 18,
+            Text(
+              'UID: ${widget.uid}',
+              style: const TextStyle(
+                fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFD84315),
+                color: Color(0xFFC76355),
               ),
             ),
-            DropdownButton<int>(
-              value: frequency,
-              items: List.generate(4, (index) {
-                return DropdownMenuItem<int>(
-                  value: index + 1,
-                  child: Text('${index + 1} times/day'),
-                );
-              }),
-              onChanged: (value) {
-                setState(() {
-                  frequency = value!;
-                  times = List.generate(frequency, (_) => TimeOfDay.now());
-                });
-              },
+            const SizedBox(height: 20),
+            
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Medicine Name',
+                border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Color(0xFFC76355)),
+              ),
             ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Column(
-          children: List.generate(
-            frequency,
-            (index) => ElevatedButton(
-              onPressed: () => selectTime(index),
+            const SizedBox(height: 16),
+            
+            TextField(
+              controller: propertiesController,
+              decoration: const InputDecoration(
+                labelText: 'Properties',
+                border: OutlineInputBorder(),
+                labelStyle: TextStyle(color: Color(0xFFC76355)),
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 20),
+            
+            ElevatedButton(
+              onPressed: selectDateRange,
               child: Text(
-                times[index] != null
-                    ? 'Time ${index + 1}: ${times[index].format(context)}'
-                    : 'Select Time ${index + 1}',
+                'Select Date Range: ${startDate != null && endDate != null ? '${startDate!.toLocal().toString().split(' ')[0]} to ${endDate!.toLocal().toString().split(' ')[0]}' : 'Select Dates'}',
+                style: const TextStyle(color: Colors.white),
               ),
-            ),
-          ),
-        ),
-        const Spacer(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  currentStep = 2;
-                });
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey,
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
-              ),
-              child: const Text(
-                'Back',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: saveToDatabase,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFD84315),
-                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
               ),
-              child: const Text(
-                'Finish',
-                style: TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 20),
+            
+            Row(
+              children: [
+                const Text(
+                  'Frequency: ',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFC76355),
+                  ),
+                ),
+                DropdownButton<int>(
+                  value: frequency,
+                  items: List.generate(4, (index) {
+                    return DropdownMenuItem<int>(
+                      value: index + 1,
+                      child: Text('${index + 1} times/day'),
+                    );
+                  }),
+                  onChanged: (value) {
+                    setState(() {
+                      frequency = value!;
+                      updateNotificationTimes();
+                    });
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            
+            Expanded(
+              flex: 2,
+              child: ListView.builder(
+                itemCount: notificationTimes.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text('Time ${index + 1}'),
+                    trailing: ElevatedButton(
+                      onPressed: () async {
+                        final TimeOfDay? pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: notificationTimes[index],
+                        );
+                        if (pickedTime != null) {
+                          setState(() {
+                            notificationTimes[index] = pickedTime;
+                          });
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFD84315),
+                      ),
+                      child: Text(
+                        '${notificationTimes[index].hour.toString().padLeft(2, '0')}:${notificationTimes[index].minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            Padding(
+              padding: const EdgeInsets.only(bottom: 40.0),
+              child: Center(
+                child: ElevatedButton(
+                  onPressed: saveToDatabase,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD84315),
+                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                    minimumSize: const Size(200, 50),
+                  ),
+                  child: const Text(
+                    'Save Medication',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 }

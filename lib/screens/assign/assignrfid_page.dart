@@ -4,8 +4,14 @@ import 'package:tagtime_medicare/screens/assign/assign_medicine_page.dart';
 
 class AssignRFIDPage extends StatefulWidget {
   final String assignType;
+  final String? caregiverId;  // เพิ่มพารามิเตอร์
+  final String? caregiverName;  // เพิ่มพารามิเตอร์
 
-  AssignRFIDPage({required this.assignType});
+  AssignRFIDPage({
+    required this.assignType, 
+    this.caregiverId, 
+    this.caregiverName
+  });
 
   @override
   _AssignRFIDPageState createState() => _AssignRFIDPageState();
@@ -20,10 +26,9 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
       isScanning = true;
     });
 
-    try {
-      // Mockup RFID scanning
-      await Future.delayed(const Duration(seconds: 2)); // Simulate delay
-      String fakeUID = "UID123456789"; // Simulated RFID UID
+    // จำลองการสแกน RFID
+    await Future.delayed(Duration(seconds: 2));
+    String fakeUID = "UID${DateTime.now().millisecondsSinceEpoch}";
 
       setState(() {
         scannedUID = fakeUID; // Assign the simulated UID
@@ -53,34 +58,43 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
         title: const Text(
           'Assign RFID',
           style: TextStyle(
-            color: Color(0xFFD84315),
+            color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
           ),
         ),
         centerTitle: true,
-        iconTheme: const IconThemeData(color: Color(0xFFD84315)),
+        iconTheme: const IconThemeData(color: Color(0xFFC76355)),
       ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Logo
             Image.asset(
               'images/LOGOAYD.png',
               height: 50,
             ),
             const SizedBox(height: 20),
-            // Assign Type
             Text(
               'Assign Type: ${widget.assignType}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFFD84315),
+                color: Color(0xFFC76355),
               ),
             ),
+            if (widget.caregiverName != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Caregiver: ${widget.caregiverName}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFC76355),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
-            // Scanning status
             if (isScanning)
               const CircularProgressIndicator()
             else if (scannedUID != null)
@@ -99,7 +113,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFFD84315),
+                      color: Color(0xFFC76355),
                     ),
                   ),
                 ],
@@ -109,11 +123,10 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 'Press "Scan RFID" to begin',
                 style: TextStyle(
                   fontSize: 18,
-                  color: Color(0xFFD84315),
+                  color: Color(0xFFC76355),
                 ),
               ),
             const SizedBox(height: 20),
-            // Scan Button
             ElevatedButton(
               onPressed: scanRFID,
               style: ElevatedButton.styleFrom(
@@ -132,28 +145,21 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // Next Button
             if (scannedUID != null)
               ElevatedButton(
-                onPressed: userId != null
-                    ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AssignMedicinePage(
-                              uid: scannedUID!,
-                              assignBy: widget.assignType,
-                              userId: userId, // Pass userId to AssignMedicinePage
-                            ),
-                          ),
-                        );
-                      }
-                    : () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Error: User is not logged in')),
-                        );
-                      },
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AssignMedicinePage(
+                        uid: scannedUID!,
+                        assignType: widget.assignType,
+                        caregiverId: widget.caregiverId,
+                        caregiverName: widget.caregiverName,
+                      ),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blueGrey,
                   shape: RoundedRectangleBorder(

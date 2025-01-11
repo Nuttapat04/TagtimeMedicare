@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -14,7 +16,9 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // ฟังก์ชัน Login ด้วยอีเมล/รหัสผ่าน
   Future<void> loginUser() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -22,13 +26,11 @@ class _LoginPageState extends State<LoginPage> {
       });
 
       try {
-        // ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต
         UserCredential userCredential = await _auth.signInWithEmailAndPassword(
           email: emailController.text.trim(),
           password: passwordController.text.trim(),
         );
 
-        // แสดงข้อความและนำผู้ใช้ไปหน้า Splash
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Welcome, ${userCredential.user!.email}!')),
         );
@@ -60,6 +62,75 @@ class _LoginPageState extends State<LoginPage> {
           isLoading = false;
         });
       }
+    }
+  }
+
+  // ฟังก์ชัน Login ด้วย Google
+  Future<void> signInWithGoogle() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        setState(() {
+          isLoading = false;
+        });
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        // เพิ่มข้อมูลผู้ใช้ลงใน Firestore
+        final DocumentReference userRef =
+            _firestore.collection('Users').doc(user.uid);
+
+        final userData = {
+          'name': user.displayName,
+          'email': user.email,
+          'photoUrl': user.photoURL,
+          'lastLogin': FieldValue.serverTimestamp(),
+        };
+
+        // ตรวจสอบว่าผู้ใช้มีข้อมูลใน Firestore หรือไม่
+        final DocumentSnapshot docSnapshot = await userRef.get();
+        if (!docSnapshot.exists) {
+          // ถ้ายังไม่มีข้อมูล ให้เพิ่มข้อมูลใหม่
+          await userRef.set({
+            ...userData,
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          // ถ้ามีข้อมูลแล้ว อัปเดตเวลาล็อกอินล่าสุด
+          await userRef.update(userData);
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Welcome, ${user.displayName}!')),
+        );
+        Navigator.pushReplacementNamed(context, '/splash');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google Sign-In Failed: $e')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -192,11 +263,26 @@ class _LoginPageState extends State<LoginPage> {
                                 ),
                               ),
                               child: const Text(
-                                'Login',
+                                'Login with Email',
                                 style: TextStyle(
                                     fontSize: 18, color: Colors.white),
                               ),
                             ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.g_mobiledata, color: Colors.white),
+                        label: Text('Sign in with Google'),
+                        onPressed: signInWithGoogle,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                          minimumSize: Size(double.infinity, 50),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Center(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tagtime_medicare/screens/assign/assignrfid_page.dart';
+import 'package:tagtime_medicare/screens/selectcaregiver_page.dart'; // เพิ่ม import
 
 class AssignPage extends StatelessWidget {
   @override
@@ -12,7 +13,7 @@ class AssignPage extends StatelessWidget {
         title: const Text(
           'Assign',
           style: TextStyle(
-            color: Color(0xFFD84315),
+            color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -35,7 +36,7 @@ class AssignPage extends StatelessWidget {
             style: TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFD84315),
+              color: Color(0xFFC76355),
             ),
           ),
           const SizedBox(height: 70),
@@ -78,8 +79,7 @@ class AssignPage extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) =>
-                            AssignRFIDPage(assignType: 'Caregiver'),
+                        builder: (context) => SelectCaregiverPage(), // เปลี่ยนเป็นไปหน้าเลือก caregiver
                       ),
                     );
                   },

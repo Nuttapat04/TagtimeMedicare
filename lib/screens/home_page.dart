@@ -15,6 +15,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   String firstName = '';
+  String userId = '';
   bool isLoading = true;
 
   @override
@@ -36,11 +37,13 @@ class _HomePageState extends State<HomePage> {
         if (userData.exists) {
           setState(() {
             firstName = userData['Name'] ?? 'User';
+            userId = user.uid; // ดึง userId ของผู้ใช้
             isLoading = false;
           });
         } else {
           setState(() {
             firstName = 'Guest';
+            userId = ''; // กรณีที่ไม่มี userId
             isLoading = false;
           });
         }
@@ -49,6 +52,7 @@ class _HomePageState extends State<HomePage> {
       print('Error fetching user data: $e');
       setState(() {
         firstName = 'User';
+        userId = '';
         isLoading = false;
       });
     }
@@ -76,8 +80,8 @@ class _HomePageState extends State<HomePage> {
         onAssignPressed: onAssignPressed,
         firstName: firstName,
       ),
-      SummaryPage(),
-      HistoryPage(),
+      SummaryPage(userId: userId,),
+      HistoryPage(userId: userId), // ส่ง userId ไปยัง HistoryPage
       ProfilePage(),
     ];
 
