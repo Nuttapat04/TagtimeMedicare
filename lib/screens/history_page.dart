@@ -14,6 +14,7 @@ class HistoryPage extends StatefulWidget {
 class _HistoryPageState extends State<HistoryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int displayCount = 10;
 
   @override
   void initState() {
@@ -34,7 +35,7 @@ class _HistoryPageState extends State<HistoryPage>
       appBar: AppBar(
         backgroundColor: const Color(0xFFFEF4E0),
         title: const Text(
-          "Your Medicines",
+          "Your Medication History",
           style: TextStyle(color: Color(0xFFC76355)),
         ),
         centerTitle: true,
@@ -74,6 +75,7 @@ class _HistoryPageState extends State<HistoryPage>
       stream: FirebaseFirestore.instance
           .collection('Medications')
           .where('user_id', isEqualTo: widget.userId)
+          .orderBy('Updated_at', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
@@ -91,26 +93,38 @@ class _HistoryPageState extends State<HistoryPage>
           );
         }
 
-        return ListView.builder(
-          itemCount: medications.length,
-          itemBuilder: (context, index) {
-            final med = medications[index].data() as Map<String, dynamic>;
-            final name = med['M_name'] ?? 'No name';
-            final time = med['Notification_times'] ?? [];
-            final startDate = med['Start_date'] is Timestamp
-                ? (med['Start_date'] as Timestamp).toDate()
-                : DateTime.now();
-            final endDate = med['End_date'] is Timestamp
-                ? (med['End_date'] as Timestamp).toDate()
-                : DateTime.now();
-            final frequency = med['Frequency'] ?? '1 time/day';
+        final itemsToShow = medications.length > displayCount 
+            ? displayCount 
+            : medications.length;
+            
+        // สร้าง list ของ widgets ที่จะแสดง
+        List<Widget> items = [];
+        
+        // เพิ่มรายการยาเข้าไปใน list
+        for (var i = 0; i < itemsToShow; i++) {
+          final med = medications[i].data() as Map<String, dynamic>;
+          final name = med['M_name'] ?? 'No name';
+          final time = med['Notification_times'] ?? [];
+          final startDate = med['Start_date'] is Timestamp
+              ? (med['Start_date'] as Timestamp).toDate()
+              : DateTime.now();
+          final endDate = med['End_date'] is Timestamp
+              ? (med['End_date'] as Timestamp).toDate()
+              : DateTime.now();
+          final frequency = med['Frequency'] ?? '1 time/day';
+          final assignedBy = med['Assigned_by'] ?? 'Unknown';
 
-            final formattedStartDate =
-                DateFormat('dd/MM/yyyy').format(startDate);
-            final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
+          final formattedStartDate =
+              DateFormat('dd/MM/yyyy').format(startDate);
+          final formattedEndDate = 
+              DateFormat('dd/MM/yyyy').format(endDate);
 
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          items.add(
+            Card(
+              margin: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
               elevation: 6,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -157,19 +171,60 @@ class _HistoryPageState extends State<HistoryPage>
                               color: Colors.grey,
                             ),
                           ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Assigned by: $assignedBy',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit, size: 30, color: Color(0xFFC76355)),
-                      onPressed: () =>
-                          _showEditDialog(medications[index].id, med),
                     ),
                   ],
                 ),
               ),
-            );
-          },
+            ),
+          );
+        }
+
+        // เพิ่มปุ่ม See More ถ้ายังมีรายการเหลือ
+        if (medications.length > displayCount) {
+          items.add(
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC76355),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
+                ),
+                onPressed: () {
+                  setState(() {
+                    displayCount += 10;
+                  });
+                },
+                child: const Text(
+                  'See More',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        // สร้าง ListView แบบไม่ scrollable
+        return ListView(
+          children: items,
         );
       },
     );
@@ -242,204 +297,4 @@ class _HistoryPageState extends State<HistoryPage>
       },
     );
   }
-
-  void _showEditDialog(String docId, Map<String, dynamic> medData) {
-  final nameController = TextEditingController(text: medData['M_name']);
-  final propertiesController =
-      TextEditingController(text: medData['Properties']);
-  DateTime? startDate = medData['Start_date'] is Timestamp
-      ? (medData['Start_date'] as Timestamp).toDate()
-      : DateTime.now();
-  DateTime? endDate = medData['End_date'] is Timestamp
-      ? (medData['End_date'] as Timestamp).toDate()
-      : DateTime.now();
-  int frequency = int.tryParse(medData['Frequency']?.split(' ')[0] ?? '1') ?? 1;
-  List<TimeOfDay> notificationTimes = (medData['Notification_times'] as List)
-      .map((timeString) {
-    final timeParts = timeString.split(':');
-    return TimeOfDay(
-      hour: int.parse(timeParts[0]),
-      minute: int.parse(timeParts[1]),
-    );
-  }).toList();
-
-  // ตั้งค่า Default Notification Times
-  final defaultTimesForFrequency2 = [
-    const TimeOfDay(hour: 8, minute: 0),
-    const TimeOfDay(hour: 19, minute: 0),
-  ];
-
-  final defaultTimesForFrequency3 = [
-    const TimeOfDay(hour: 8, minute: 0),
-    const TimeOfDay(hour: 13, minute: 0),
-    const TimeOfDay(hour: 19, minute: 0),
-  ];
-
-  final defaultTimesForFrequency4 = [
-    const TimeOfDay(hour: 8, minute: 0),
-    const TimeOfDay(hour: 13, minute: 0),
-    const TimeOfDay(hour: 19, minute: 0),
-    const TimeOfDay(hour: 21, minute: 0),
-  ];
-
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFFFEF4E0),
-            title: const Text(
-              'Edit Medication',
-              style: TextStyle(color: Color(0xFFC76355)),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Name'),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: propertiesController,
-                    decoration: const InputDecoration(labelText: 'Properties'),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final DateTimeRange? picked = await showDateRangePicker(
-                        context: context,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                        initialDateRange: DateTimeRange(
-                          start: startDate!,
-                          end: endDate!,
-                        ),
-                      );
-                      if (picked != null) {
-                        setDialogState(() {
-                          startDate = picked.start;
-                          endDate = picked.end;
-                        });
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFC76355),
-                    ),
-                    child: Text(
-                      startDate != null && endDate != null
-                          ? '${DateFormat('dd/MM/yyyy').format(startDate!)} - ${DateFormat('dd/MM/yyyy').format(endDate!)}'
-                          : 'Select Date Range',
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text(
-                        'Frequency:',
-                        style: TextStyle(color: Color(0xFFC76355)),
-                      ),
-                      const SizedBox(width: 10),
-                      DropdownButton<int>(
-                        value: frequency,
-                        items: List.generate(4, (index) {
-                          return DropdownMenuItem<int>(
-                            value: index + 1,
-                            child: Text('${index + 1} times/day'),
-                          );
-                        }),
-                        onChanged: (value) {
-                          setDialogState(() {
-                            frequency = value!;
-                            if (frequency == 4) {
-                              notificationTimes = defaultTimesForFrequency4;
-                            } else if (frequency == 3) {
-                              notificationTimes = defaultTimesForFrequency3;
-                            } else if (frequency == 2) {
-                              notificationTimes = defaultTimesForFrequency2;
-                            } else {
-                              notificationTimes = List.generate(
-                                frequency,
-                                (_) => TimeOfDay.now(),
-                              );
-                            }
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Column(
-                    children: List.generate(notificationTimes.length, (index) {
-                      return ElevatedButton(
-                        onPressed: () async {
-                          final TimeOfDay? pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: notificationTimes[index],
-                          );
-                          if (pickedTime != null) {
-                            setDialogState(() {
-                              notificationTimes[index] = pickedTime;
-                            });
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFC76355),
-                        ),
-                        child: Text(
-                          'Time ${index + 1}: ${notificationTimes[index].format(context)}',
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'Cancel',
-                  style: TextStyle(color: Color(0xFFC76355)),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  await FirebaseFirestore.instance
-                      .collection('Medications')
-                      .doc(docId)
-                      .update({
-                    'M_name': nameController.text,
-                    'Properties': propertiesController.text,
-                    'Start_date': startDate,
-                    'End_date': endDate,
-                    'Frequency': '$frequency times/day',
-                    'Notification_times': notificationTimes.map((time) {
-                      return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-                    }).toList(),
-                    'Updated_at': Timestamp.now(),
-                  });
-
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Medication updated successfully!')),
-                  );
-                },
-                child: const Text(
-                  'Save',
-                  style: TextStyle(color: Color(0xFFC76355)),
-                ),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
 }
