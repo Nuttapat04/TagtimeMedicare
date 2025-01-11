@@ -11,7 +11,8 @@ class SummaryPage extends StatefulWidget {
   _SummaryPageState createState() => _SummaryPageState();
 }
 
-class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStateMixin {
+class _SummaryPageState extends State<SummaryPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -44,7 +45,8 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
           indicatorColor: const Color(0xFFC76355),
           labelColor: const Color(0xFFC76355),
           unselectedLabelColor: Colors.grey,
-          labelStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          labelStyle:
+              const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: 'Current Medicines'),
             Tab(text: 'Summary'),
@@ -96,7 +98,8 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
             final hour = int.parse(timeParts[0]);
             final minute = int.parse(timeParts[1]);
 
-            final notificationTime = DateTime(endDate.year, endDate.month, endDate.day, hour, minute);
+            final notificationTime = DateTime(
+                endDate.year, endDate.month, endDate.day, hour, minute);
 
             return notificationTime.isAfter(DateTime.now());
           }
@@ -107,7 +110,8 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
         return ListView.builder(
           itemCount: filteredMedications.length,
           itemBuilder: (context, index) {
-            final med = filteredMedications[index].data() as Map<String, dynamic>;
+            final med =
+                filteredMedications[index].data() as Map<String, dynamic>;
             final name = med['M_name'] ?? 'No name';
             final time = med['Notification_times'] ?? [];
             final startDate = med['Start_date'] is Timestamp
@@ -118,7 +122,8 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
                 : DateTime.now();
             final assignedBy = med['Assigned_by'] ?? 'Unknown';
 
-            final formattedStartDate = DateFormat('dd/MM/yyyy').format(startDate);
+            final formattedStartDate =
+                DateFormat('dd/MM/yyyy').format(startDate);
             final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
 
             return Card(
@@ -171,7 +176,7 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Assigned by: $assignedBy',
+                            'Assigned by: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
                             style: const TextStyle(
                               fontSize: 18,
                               color: Colors.grey,
@@ -184,20 +189,27 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
                         ? Column(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.edit, size: 30, color: Color(0xFFC76355)),
-                                onPressed: () => _showEditDialog(filteredMedications[index].id, med),
+                                icon: const Icon(Icons.edit,
+                                    size: 30, color: Color(0xFFC76355)),
+                                onPressed: () => _showEditDialog(
+                                    filteredMedications[index].id, med),
                               ),
+                              const SizedBox(height: 50), // เพิ่มระยะห่าง
                               IconButton(
-                                icon: const Icon(Icons.delete, size: 30, color: Colors.red),
-                                onPressed: () => _showDeleteConfirmationDialog(filteredMedications[index].id),
+                                icon: const Icon(Icons.delete,
+                                    size: 30, color: Colors.red),
+                                onPressed: () => _showDeleteConfirmationDialog(
+                                    filteredMedications[index].id),
                               ),
                             ],
                           )
                         : Column(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.delete, size: 30, color: Colors.red),
-                                onPressed: () => _showDeleteConfirmationDialog(filteredMedications[index].id),
+                                icon: const Icon(Icons.delete,
+                                    size: 30, color: Colors.red),
+                                onPressed: () => _showDeleteConfirmationDialog(
+                                    filteredMedications[index].id),
                               ),
                             ],
                           ),
@@ -218,7 +230,10 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
         child: Text(
           'รอเชื่อม device จริงก่อน, ยังทำไม่ได้',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFFC76355)),
+          style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFC76355)),
         ),
       ),
     );
@@ -226,16 +241,18 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
 
   void _showEditDialog(String docId, Map<String, dynamic> medData) {
     final nameController = TextEditingController(text: medData['M_name']);
-    final propertiesController = TextEditingController(text: medData['Properties']);
+    final propertiesController =
+        TextEditingController(text: medData['Properties']);
     DateTime? startDate = medData['Start_date'] is Timestamp
         ? (medData['Start_date'] as Timestamp).toDate()
         : DateTime.now();
     DateTime? endDate = medData['End_date'] is Timestamp
         ? (medData['End_date'] as Timestamp).toDate()
         : DateTime.now();
-    int frequency = int.tryParse(medData['Frequency']?.split(' ')[0] ?? '1') ?? 1;
-    List<TimeOfDay> notificationTimes = (medData['Notification_times'] as List)
-        .map((timeString) {
+    int frequency =
+        int.tryParse(medData['Frequency']?.split(' ')[0] ?? '1') ?? 1;
+    List<TimeOfDay> notificationTimes =
+        (medData['Notification_times'] as List).map((timeString) {
       final timeParts = timeString.split(':');
       return TimeOfDay(
         hour: int.parse(timeParts[0]),
@@ -265,17 +282,17 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
                     const SizedBox(height: 16),
                     TextField(
                       controller: propertiesController,
-                      decoration: const InputDecoration(labelText: 'Properties'),
+                      decoration:
+                          const InputDecoration(labelText: 'Properties'),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () async {
-                        final DateTimeRange? picked =
-                            await showDateRangePicker(
+                        final DateTimeRange? picked = await showDateRangePicker(
                           context: context,
                           firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(
-                              const Duration(days: 365)),
+                          lastDate:
+                              DateTime.now().add(const Duration(days: 365)),
                           initialDateRange: DateTimeRange(
                             start: startDate!,
                             end: endDate!,
@@ -324,11 +341,11 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
                     ),
                     const SizedBox(height: 16),
                     Column(
-                      children: List.generate(notificationTimes.length, (index) {
+                      children:
+                          List.generate(notificationTimes.length, (index) {
                         return ElevatedButton(
                           onPressed: () async {
-                            final TimeOfDay? pickedTime =
-                                await showTimePicker(
+                            final TimeOfDay? pickedTime = await showTimePicker(
                               context: context,
                               initialTime: notificationTimes[index],
                             );
@@ -378,7 +395,8 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
 
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Medication updated successfully!')),
+                      const SnackBar(
+                          content: Text('Medication updated successfully!')),
                     );
                   },
                   child: const Text(
@@ -400,10 +418,11 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Confirm Deletion'),
-          content: const Text('Are you sure you want to delete this medication?'),
+          content:
+              const Text('Are you sure you want to delete this medication?'),
           actions: <Widget>[
             TextButton(
-              onPressed: () => Navigator.of(context).pop(), 
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text('Cancel'),
             ),
             TextButton(
@@ -414,7 +433,8 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
                     .delete();
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Medication deleted successfully!')),
+                  const SnackBar(
+                      content: Text('Medication deleted successfully!')),
                 );
               },
               child: const Text('Delete'),

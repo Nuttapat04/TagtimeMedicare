@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:tagtime_medicare/screens/assign/assign_medicine_page.dart';
 
 class AssignRFIDPage extends StatefulWidget {
-  final String assignType; // รับค่า assignType จากหน้าที่แล้ว
+  final String assignType;
+  final String? caregiverId;  // เพิ่มพารามิเตอร์
+  final String? caregiverName;  // เพิ่มพารามิเตอร์
 
-  AssignRFIDPage({required this.assignType});
+  AssignRFIDPage({
+    required this.assignType, 
+    this.caregiverId, 
+    this.caregiverName
+  });
 
   @override
   _AssignRFIDPageState createState() => _AssignRFIDPageState();
@@ -21,7 +27,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
 
     // จำลองการสแกน RFID
     await Future.delayed(Duration(seconds: 2));
-    String fakeUID = "UID${DateTime.now().millisecondsSinceEpoch}"; // แทนที่ด้วย UID จริงจากการสแกน
+    String fakeUID = "UID${DateTime.now().millisecondsSinceEpoch}";
 
     setState(() {
       scannedUID = fakeUID;
@@ -51,13 +57,11 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Logo
             Image.asset(
               'images/LOGOAYD.png',
               height: 50,
             ),
             const SizedBox(height: 20),
-            // แสดง Assign Type
             Text(
               'Assign Type: ${widget.assignType}',
               style: const TextStyle(
@@ -66,8 +70,18 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 color: Color(0xFFC76355),
               ),
             ),
+            if (widget.caregiverName != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Caregiver: ${widget.caregiverName}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFC76355),
+                ),
+              ),
+            ],
             const SizedBox(height: 20),
-            // สถานะการสแกน RFID
             if (isScanning)
               const CircularProgressIndicator()
             else if (scannedUID != null)
@@ -100,7 +114,6 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 ),
               ),
             const SizedBox(height: 20),
-            // ปุ่มสแกน RFID
             ElevatedButton(
               onPressed: scanRFID,
               style: ElevatedButton.styleFrom(
@@ -119,16 +132,18 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               ),
             ),
             const SizedBox(height: 20),
-            // ปุ่มไปหน้าถัดไป
             if (scannedUID != null)
               ElevatedButton(
                 onPressed: () {
-                  // ส่ง UID ไปยังหน้าถัดไป (AssignMedicinePage)
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          AssignMedicinePage(uid: scannedUID!, assignType: widget.assignType),
+                      builder: (context) => AssignMedicinePage(
+                        uid: scannedUID!,
+                        assignType: widget.assignType,
+                        caregiverId: widget.caregiverId,
+                        caregiverName: widget.caregiverName,
+                      ),
                     ),
                   );
                 },
@@ -137,8 +152,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25.0),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                  padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                 ),
                 child: const Text(
                   'NEXT',

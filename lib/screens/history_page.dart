@@ -50,7 +50,8 @@ class _HistoryPageState extends State<HistoryPage>
             indicatorColor: const Color(0xFFC76355),
             labelColor: const Color(0xFFC76355),
             unselectedLabelColor: Colors.grey,
-            labelStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            labelStyle:
+                const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             tabs: const [
               Tab(text: 'List'),
               Tab(text: 'History'),
@@ -93,13 +94,13 @@ class _HistoryPageState extends State<HistoryPage>
           );
         }
 
-        final itemsToShow = medications.length > displayCount 
-            ? displayCount 
+        final itemsToShow = medications.length > displayCount
+            ? displayCount
             : medications.length;
-            
+
         // สร้าง list ของ widgets ที่จะแสดง
         List<Widget> items = [];
-        
+
         // เพิ่มรายการยาเข้าไปใน list
         for (var i = 0; i < itemsToShow; i++) {
           final med = medications[i].data() as Map<String, dynamic>;
@@ -114,10 +115,8 @@ class _HistoryPageState extends State<HistoryPage>
           final frequency = med['Frequency'] ?? '1 time/day';
           final assignedBy = med['Assigned_by'] ?? 'Unknown';
 
-          final formattedStartDate =
-              DateFormat('dd/MM/yyyy').format(startDate);
-          final formattedEndDate = 
-              DateFormat('dd/MM/yyyy').format(endDate);
+          final formattedStartDate = DateFormat('dd/MM/yyyy').format(startDate);
+          final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
 
           items.add(
             Card(
@@ -173,7 +172,7 @@ class _HistoryPageState extends State<HistoryPage>
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'Assigned by: $assignedBy',
+                            'Assigned by: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
                             style: const TextStyle(
                               fontSize: 18,
                               color: Colors.grey,

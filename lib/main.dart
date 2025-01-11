@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:tagtime_medicare/screens/Caregiver_screen.dart';
 import 'package:tagtime_medicare/screens/customer_support_page.dart';
 import 'package:tagtime_medicare/screens/edit_information_page.dart';
 import 'package:tagtime_medicare/screens/welcome.dart';
@@ -55,6 +56,7 @@ class MyApp extends StatelessWidget {
         '/welcome': (context) => WelcomePage(),
         '/edit-information': (context) => EditInformationPage(),
         '/customer-support': (context) => CustomerSupportPage(),
+        '/caregiver': (context) => CaregiverPage(),
       },
     );
   }
