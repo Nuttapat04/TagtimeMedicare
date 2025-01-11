@@ -9,7 +9,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   String firstName = '';
-  String lastName = ''; // เพิ่มตัวแปร lastName
+  String lastName = '';
   String email = '';
   bool isLoading = true;
 
@@ -71,8 +71,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     backgroundColor: const Color(0xFFC76355),
                     child: Text(
                       firstName.isNotEmpty
-                          ? firstName[0].toUpperCase() // ใช้ตัวอักษรตัวแรกของชื่อ
-                          : 'U', // กรณีไม่มีข้อมูล
+                          ? firstName[0].toUpperCase()
+                          : 'U',
                       style: const TextStyle(
                         fontSize: 40,
                         fontWeight: FontWeight.bold,
@@ -82,7 +82,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    '$firstName $lastName', // แสดงชื่อและนามสกุล
+                    '$firstName $lastName',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -121,6 +121,20 @@ class _ProfilePageState extends State<ProfilePage> {
                         color: Colors.grey),
                     onTap: () {
                       Navigator.pushNamed(context, '/customer-support');
+                    },
+                  ),
+                  // เพิ่ม ListTile สำหรับ Caregiver
+                  ListTile(
+                    leading: const Icon(Icons.accessibility_new,
+                        color: Color(0xFFC76355)),
+                    title: const Text(
+                      'Caregiver',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    trailing: const Icon(Icons.arrow_forward_ios,
+                        color: Colors.grey),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/caregiver');
                     },
                   ),
                   ListTile(

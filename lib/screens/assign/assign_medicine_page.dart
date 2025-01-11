@@ -5,8 +5,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AssignMedicinePage extends StatefulWidget {
   final String uid;
   final String assignType;
+  final String? caregiverId;
+  final String? caregiverName;
 
-  AssignMedicinePage({required this.uid, required this.assignType});
+  AssignMedicinePage({
+    required this.uid,
+    required this.assignType,
+    this.caregiverId,
+    this.caregiverName,
+  });
 
   @override
   _AssignMedicinePageState createState() => _AssignMedicinePageState();
@@ -55,41 +62,56 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
   }
 
   Future<void> saveToDatabase() async {
-  try {
-    final String userId = FirebaseAuth.instance.currentUser!.uid;
-    final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
+    try {
+      final String userId = FirebaseAuth.instance.currentUser!.uid;
+      final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
+      final rfidDoc = FirebaseFirestore.instance.collection('Rfid_tags').doc();
 
-    List<String> formattedTimes = notificationTimes.map((time) {
-      return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-    }).toList();
+      List<String> formattedTimes = notificationTimes.map((time) {
+        return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+      }).toList();
 
-    // บันทึกข้อมูลใน Firestore พร้อมฟิลด์ Assigned_by
-    await medicationDoc.set({
-      'user_id': userId,
-      'RFID_tag': widget.uid,
-      'M_name': nameController.text,
-      'Properties': propertiesController.text,
-      'Start_date': startDate,
-      'End_date': endDate,
-      'Frequency': '$frequency times/day',
-      'Notification_times': formattedTimes,
-      'Assigned_by': widget.assignType, // เก็บเป็น 'Assigned_by' ในฐานข้อมูล
-      'Created_at': Timestamp.now(),
-      'Updated_at': Timestamp.now(),
-    });
+      // บันทึกข้อมูลยาใน Medications collection
+      await medicationDoc.set({
+        'user_id': userId,
+        'RFID_tag': widget.uid,
+        'M_name': nameController.text,
+        'Properties': propertiesController.text,
+        'Start_date': startDate,
+        'End_date': endDate,
+        'Frequency': '$frequency times/day',
+        'Notification_times': formattedTimes,
+        'Assigned_by': widget.assignType,
+        'Caregiver_id': widget.caregiverId, // เพิ่มข้อมูล caregiver ถ้ามี
+        'Caregiver_name': widget.caregiverName,
+        'Created_at': Timestamp.now(),
+        'Updated_at': Timestamp.now(),
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Medication assigned successfully!')),
-    );
+      // บันทึกข้อมูล RFID tag
+      await rfidDoc.set({
+        'Tag_id': widget.uid,
+        'Status': 'Active',
+        'User_id': userId,
+        'Assign_by': widget.assignType,
+        'Medication_id': nameController.text,
+        'Last_scanned': Timestamp.now(),
+      });
 
-    Navigator.pop(context);
-  } catch (e) {
-    print('Error saving data: $e');
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to assign medication!')),
-    );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Medication assigned successfully!')),
+      );
+
+      // Navigate back to home or desired screen
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
+    } catch (e) {
+      print('Error saving data: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to assign medication!')),
+      );
+    }
   }
-}
 
 
   @override
