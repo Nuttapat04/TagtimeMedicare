@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:tagtime_medicare/screens/assign_page.dart';
-import 'package:tagtime_medicare/screens/assign/assign_medicine_page.dart';
 
 class RFIDPage extends StatefulWidget {
   final Function onRFIDDetected;
