@@ -99,9 +99,10 @@ class _LoginPageState extends State<LoginPage> {
             _firestore.collection('Users').doc(user.uid);
 
         final userData = {
-          'name': user.displayName,
-          'email': user.email,
-          'photoUrl': user.photoURL,
+          'name': user.displayName ?? 'Unknown',
+          'email': user.email ?? 'Unknown',
+          'photoUrl': user.photoURL ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
           'lastLogin': FieldValue.serverTimestamp(),
         };
 
@@ -109,17 +110,16 @@ class _LoginPageState extends State<LoginPage> {
         final DocumentSnapshot docSnapshot = await userRef.get();
         if (!docSnapshot.exists) {
           // ถ้ายังไม่มีข้อมูล ให้เพิ่มข้อมูลใหม่
-          await userRef.set({
-            ...userData,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+          await userRef.set(userData);
         } else {
           // ถ้ามีข้อมูลแล้ว อัปเดตเวลาล็อกอินล่าสุด
-          await userRef.update(userData);
+          await userRef.update({
+            'lastLogin': FieldValue.serverTimestamp(),
+          });
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Welcome, ${user.displayName}!')),
+          SnackBar(content: Text('Welcome, ${user.displayName ?? 'User'}!')),
         );
         Navigator.pushReplacementNamed(context, '/splash');
       }
