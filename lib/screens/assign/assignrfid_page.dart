@@ -128,7 +128,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
-                          AssignMedicinePage(uid: scannedUID!),
+                          AssignMedicinePage(uid: scannedUID!, assignType: widget.assignType),
                     ),
                   );
                 },

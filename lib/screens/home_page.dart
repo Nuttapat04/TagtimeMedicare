@@ -80,7 +80,7 @@ class _HomePageState extends State<HomePage> {
         onAssignPressed: onAssignPressed,
         firstName: firstName,
       ),
-      SummaryPage(),
+      SummaryPage(userId: userId,),
       HistoryPage(userId: userId), // ส่ง userId ไปยัง HistoryPage
       ProfilePage(),
     ];
