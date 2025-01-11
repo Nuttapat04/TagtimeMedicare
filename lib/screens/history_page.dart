@@ -53,7 +53,7 @@ class _HistoryPageState extends State<HistoryPage>
             labelStyle:
                 const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             tabs: const [
-              Tab(text: 'List'),
+              Tab(text: 'History List'),
               Tab(text: 'History'),
             ],
           ),
