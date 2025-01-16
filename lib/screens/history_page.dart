@@ -33,6 +33,7 @@ class _HistoryPageState extends State<HistoryPage>
     return Scaffold(
       backgroundColor: const Color(0xFFFEF4E0),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFFFEF4E0),
         title: const Text(
           "Your Medication History",

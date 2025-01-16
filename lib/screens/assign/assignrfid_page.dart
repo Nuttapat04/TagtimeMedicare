@@ -117,7 +117,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
             ElevatedButton(
               onPressed: scanRFID,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD84315),
+                backgroundColor: Color(0xFFC76355),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25.0),
                 ),

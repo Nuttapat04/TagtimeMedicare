@@ -44,7 +44,6 @@ dependencies:
   shared_preferences: ^2.3.5
   intl: ^0.18.0
   google_sign_in: ^6.2.2
-  #google_sign_in: ^6.2.2
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +67,7 @@ flutter:
     - images/welcome2.png
     - images/welcome3.png
     - images/welcome4.png
+    - images/google_logo.png
 
   
   # The following line ensures that the Material Icons font is

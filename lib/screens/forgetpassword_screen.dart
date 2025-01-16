@@ -56,7 +56,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFFEF4E0),
         elevation: 0,
-        iconTheme: const IconThemeData(color: Color(0xFFD84315)),
+        iconTheme: const IconThemeData(color: Color(0xFFC76355)),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -69,7 +69,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFFD84315),
+                  color: Color(0xFFC76355),
                 ),
               ),
               const SizedBox(height: 16),
@@ -90,7 +90,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
               ElevatedButton(
                 onPressed: sendResetEmail,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFD84315),
+                  backgroundColor: const Color(0xFFC76355),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12.0),
                   ),

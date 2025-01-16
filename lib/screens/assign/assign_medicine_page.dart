@@ -22,6 +22,7 @@ class AssignMedicinePage extends StatefulWidget {
 class _AssignMedicinePageState extends State<AssignMedicinePage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController propertiesController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   DateTime? startDate;
   DateTime? endDate;
@@ -61,7 +62,40 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
     }
   }
 
+  bool validateForm() {
+    // Check if medicine name is empty
+    if (nameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter medicine name')),
+      );
+      return false;
+    }
+
+    // Check if properties are empty
+    if (propertiesController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter medicine properties')),
+      );
+      return false;
+    }
+
+    // Check if date range is selected
+    if (startDate == null || endDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a date range')),
+      );
+      return false;
+    }
+
+    return true;
+  }
+
   Future<void> saveToDatabase() async {
+    // Validate form before saving
+    if (!validateForm()) {
+      return;
+    }
+
     try {
       final String userId = FirebaseAuth.instance.currentUser!.uid;
       final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
@@ -102,8 +136,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
         const SnackBar(content: Text('Medication assigned successfully!')),
       );
 
-      // Navigate back to home or desired screen
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.pop(context);
 
     } catch (e) {
       print('Error saving data: $e');
@@ -112,7 +145,6 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +180,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
-                labelText: 'Medicine Name',
+                labelText: 'Medicine Name *',
                 border: OutlineInputBorder(),
                 labelStyle: TextStyle(color: Color(0xFFC76355)),
               ),
@@ -158,7 +190,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
             TextField(
               controller: propertiesController,
               decoration: const InputDecoration(
-                labelText: 'Properties',
+                labelText: 'Properties *',
                 border: OutlineInputBorder(),
                 labelStyle: TextStyle(color: Color(0xFFC76355)),
               ),
@@ -169,11 +201,11 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
             ElevatedButton(
               onPressed: selectDateRange,
               child: Text(
-                'Select Date Range: ${startDate != null && endDate != null ? '${startDate!.toLocal().toString().split(' ')[0]} to ${endDate!.toLocal().toString().split(' ')[0]}' : 'Select Dates'}',
+                'Select Date Range *: ${startDate != null && endDate != null ? '${startDate!.toLocal().toString().split(' ')[0]} to ${endDate!.toLocal().toString().split(' ')[0]}' : 'Select Dates'}',
                 style: const TextStyle(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD84315),
+                backgroundColor: Color(0xFFC76355),
               ),
             ),
             const SizedBox(height: 20),
@@ -227,7 +259,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD84315),
+                        backgroundColor: Color(0xFFC76355),
                       ),
                       child: Text(
                         '${notificationTimes[index].hour.toString().padLeft(2, '0')}:${notificationTimes[index].minute.toString().padLeft(2, '0')}',
@@ -247,7 +279,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
                 child: ElevatedButton(
                   onPressed: saveToDatabase,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD84315),
+                    backgroundColor: Color(0xFFC76355),
                     padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                     minimumSize: const Size(200, 50),
                   ),
