@@ -91,67 +91,64 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
     return true;
   }
 
-  Future<void> saveToDatabase() async {
-  // Validate form ก่อนบันทึก
-  if (!validateForm()) {
-    return;
+  Future<void> removeOldData(String rfidTag, String userId) async {
+  // 1) ลบจาก Rfid_tags
+  final rfidCollection = FirebaseFirestore.instance.collection('Rfid_tags');
+  final oldRfidDocs = await rfidCollection
+      .where('RFID_tag', isEqualTo: rfidTag)
+      .where('user_id', isEqualTo: userId)
+      .get();
+
+  for (var docSnapshot in oldRfidDocs.docs) {
+    await docSnapshot.reference.delete();
   }
 
+  // 2) ลบจาก Medications
+  final medCollection = FirebaseFirestore.instance.collection('Medications');
+  final oldMedDocs = await medCollection
+      .where('RFID_tag', isEqualTo: rfidTag)
+      .where('user_id', isEqualTo: userId)
+      .get();
+
+  for (var docSnapshot in oldMedDocs.docs) {
+    await docSnapshot.reference.delete();
+  }
+}
+
+  Future<void> saveToDatabase() async {
+  if (!validateForm()) return;
+
   try {
-    final String userId = FirebaseAuth.instance.currentUser!.uid;
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+
+    // เรียกฟังก์ชันลบทั้งคู่
+    await removeOldData(widget.uid, userId);
+
+    // จากนั้นจึงบันทึกเอกสารใหม่
     final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
-    final rfidCollection = FirebaseFirestore.instance.collection('Rfid_tags');
+    final rfidDoc = FirebaseFirestore.instance.collection('Rfid_tags').doc();
 
-    // Query หาเฉพาะเอกสารที่มี Tag_id = UID และ User_id = user ปัจจุบัน
-    final oldRfids = await rfidCollection
-        .where('Tag_id', isEqualTo: widget.uid)
-        .where('user_id', isEqualTo: userId)
-        .get();
-
-    // ถ้าเจอเอกสารซ้ำ ให้ลบออกก่อน (ลบเฉพาะของ userId นี้เท่านั้น)
-    for (var docSnapshot in oldRfids.docs) {
-      await docSnapshot.reference.delete();
-    }
-
-    List<String> formattedTimes = notificationTimes.map((time) {
-      return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-    }).toList();
-
-    // บันทึกข้อมูลยาใน Medications collection
+    // บันทึกข้อมูล Medications
     await medicationDoc.set({
       'user_id': userId,
-      'RFID_tag': widget.uid,          
+      'RFID_tag': widget.uid,
       'Assign_source': widget.assignSource,
-      'M_name': nameController.text,
-      'Properties': propertiesController.text,
-      'Start_date': startDate,
-      'End_date': endDate,
-      'Frequency': '$frequency times/day',
-      'Notification_times': formattedTimes,
-      'Assigned_by': widget.assignType,
-      'Caregiver_id': widget.caregiverId,
-      'Caregiver_name': widget.caregiverName,
-      'Created_at': Timestamp.now(),
-      'Updated_at': Timestamp.now(),
+      // ...อื่น ๆ
     });
 
-    // บันทึกข้อมูล RFID tag (สร้าง doc ใหม่)
-    final rfidDoc = rfidCollection.doc();
+    // บันทึกข้อมูล Rfid_tags
     await rfidDoc.set({
-      'Tag_id': widget.uid,
-      'Status': 'Active',
+      'RFID_tag': widget.uid,
       'user_id': userId,
-      'Assign_by': widget.assignType,
-      'Medication_id': nameController.text,
       'Assign_source': widget.assignSource,
-      'Last_scanned': Timestamp.now(),
+      // ...อื่น ๆ
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Medication assigned successfully!')),
     );
 
-    // ปิดหน้านี้แล้วกลับไปหน้าก่อนหน้าสองระดับ
+    // กลับหน้าก่อนหน้า
     Navigator.pop(context);
     Navigator.pop(context);
 
@@ -162,6 +159,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
     );
   }
 }
+
 
   @override
   Widget build(BuildContext context) {
