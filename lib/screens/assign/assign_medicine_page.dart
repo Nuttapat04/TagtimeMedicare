@@ -7,12 +7,14 @@ class AssignMedicinePage extends StatefulWidget {
   final String assignType;
   final String? caregiverId;
   final String? caregiverName;
+  final String assignSource; // เพิ่มตัวแปรนี้เพื่อบอกว่ามาจาก SIMULATED หรือ RFID
 
   AssignMedicinePage({
     required this.uid,
     required this.assignType,
     this.caregiverId,
     this.caregiverName,
+    required this.assignSource,
   });
 
   @override
@@ -51,7 +53,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
     final DateTimeRange? picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
     );
     if (picked != null) {
       setState(() {
@@ -90,60 +92,76 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
   }
 
   Future<void> saveToDatabase() async {
-    // Validate form before saving
-    if (!validateForm()) {
-      return;
-    }
-
-    try {
-      final String userId = FirebaseAuth.instance.currentUser!.uid;
-      final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
-      final rfidDoc = FirebaseFirestore.instance.collection('Rfid_tags').doc();
-
-      List<String> formattedTimes = notificationTimes.map((time) {
-        return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
-      }).toList();
-
-      // บันทึกข้อมูลยาใน Medications collection
-      await medicationDoc.set({
-        'user_id': userId,
-        'RFID_tag': widget.uid,
-        'M_name': nameController.text,
-        'Properties': propertiesController.text,
-        'Start_date': startDate,
-        'End_date': endDate,
-        'Frequency': '$frequency times/day',
-        'Notification_times': formattedTimes,
-        'Assigned_by': widget.assignType,
-        'Caregiver_id': widget.caregiverId, // เพิ่มข้อมูล caregiver ถ้ามี
-        'Caregiver_name': widget.caregiverName,
-        'Created_at': Timestamp.now(),
-        'Updated_at': Timestamp.now(),
-      });
-
-      // บันทึกข้อมูล RFID tag
-      await rfidDoc.set({
-        'Tag_id': widget.uid,
-        'Status': 'Active',
-        'User_id': userId,
-        'Assign_by': widget.assignType,
-        'Medication_id': nameController.text,
-        'Last_scanned': Timestamp.now(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Medication assigned successfully!')),
-      );
-
-      Navigator.pushReplacementNamed(context, '/assignpage');
-
-    } catch (e) {
-      print('Error saving data: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to assign medication!')),
-      );
-    }
+  // Validate form ก่อนบันทึก
+  if (!validateForm()) {
+    return;
   }
+
+  try {
+    final String userId = FirebaseAuth.instance.currentUser!.uid;
+    final medicationDoc = FirebaseFirestore.instance.collection('Medications').doc();
+    final rfidCollection = FirebaseFirestore.instance.collection('Rfid_tags');
+
+    // Query หาเฉพาะเอกสารที่มี Tag_id = UID และ User_id = user ปัจจุบัน
+    final oldRfids = await rfidCollection
+        .where('Tag_id', isEqualTo: widget.uid)
+        .where('user_id', isEqualTo: userId)
+        .get();
+
+    // ถ้าเจอเอกสารซ้ำ ให้ลบออกก่อน (ลบเฉพาะของ userId นี้เท่านั้น)
+    for (var docSnapshot in oldRfids.docs) {
+      await docSnapshot.reference.delete();
+    }
+
+    List<String> formattedTimes = notificationTimes.map((time) {
+      return "${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}";
+    }).toList();
+
+    // บันทึกข้อมูลยาใน Medications collection
+    await medicationDoc.set({
+      'user_id': userId,
+      'RFID_tag': widget.uid,          
+      'Assign_source': widget.assignSource,
+      'M_name': nameController.text,
+      'Properties': propertiesController.text,
+      'Start_date': startDate,
+      'End_date': endDate,
+      'Frequency': '$frequency times/day',
+      'Notification_times': formattedTimes,
+      'Assigned_by': widget.assignType,
+      'Caregiver_id': widget.caregiverId,
+      'Caregiver_name': widget.caregiverName,
+      'Created_at': Timestamp.now(),
+      'Updated_at': Timestamp.now(),
+    });
+
+    // บันทึกข้อมูล RFID tag (สร้าง doc ใหม่)
+    final rfidDoc = rfidCollection.doc();
+    await rfidDoc.set({
+      'Tag_id': widget.uid,
+      'Status': 'Active',
+      'user_id': userId,
+      'Assign_by': widget.assignType,
+      'Medication_id': nameController.text,
+      'Assign_source': widget.assignSource,
+      'Last_scanned': Timestamp.now(),
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Medication assigned successfully!')),
+    );
+
+    // ปิดหน้านี้แล้วกลับไปหน้าก่อนหน้าสองระดับ
+    Navigator.pop(context);
+    Navigator.pop(context);
+
+  } catch (e) {
+    print('Error saving data: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Failed to assign medication!')),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -151,9 +169,9 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
       backgroundColor: const Color(0xFFFFF4E0),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFF8E1),
-        title: Text(
+        title: const Text(
           'Assign Medicine',
-          style: const TextStyle(
+          style: TextStyle(
             color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
           ),
@@ -166,6 +184,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // แสดง UID และ Assign Source
             Text(
               'UID: ${widget.uid}',
               style: const TextStyle(
@@ -174,6 +193,15 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
                 color: Color(0xFFC76355),
               ),
             ),
+            Text(
+              'ASSIGN SOURCE: ${widget.assignSource}', // แสดงว่าเป็น RFID หรือ SIMULATED
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFFC76355),
+              ),
+            ),
+
             const SizedBox(height: 20),
             
             TextField(

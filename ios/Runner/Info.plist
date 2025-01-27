@@ -97,6 +97,9 @@
    <array>
        <string>NDEF</string>
        <string>TAG</string>
+
+    	<string>ISO15693</string> <!-- สำหรับแท็กประเภท ISO 15693 -->
+    	<string>ISO14443</string> <!-- สำหรับแท็กประเภท MiFare -->
    </array>
 </dict>
 </plist>

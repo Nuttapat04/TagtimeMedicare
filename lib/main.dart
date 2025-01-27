@@ -4,11 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:tagtime_medicare/screens/Caregiver_screen.dart';
+import 'package:tagtime_medicare/screens/RFID_screen.dart';
 import 'package:tagtime_medicare/screens/admin_page.dart';
 import 'package:tagtime_medicare/screens/assign_page.dart';
 import 'package:tagtime_medicare/screens/customer_support_page.dart';
 import 'package:tagtime_medicare/screens/edit_information_page.dart';
-import 'package:tagtime_medicare/screens/nfc_page.dart';
 import 'package:tagtime_medicare/screens/profile_page.dart';
 import 'package:tagtime_medicare/screens/welcome.dart';
 import 'package:tagtime_medicare/screens/splash_screen.dart';
@@ -78,7 +78,6 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => ProfilePage(),
         '/adminpage': (context) => AdminPage(),
         '/assignpage': (context) => AssignPage(),
-        '/nfc': (context) => NFCPage(),
       },
     );
   }
