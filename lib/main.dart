@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:tagtime_medicare/screens/Caregiver_screen.dart';
-import 'package:tagtime_medicare/screens/RFID_screen.dart';
 import 'package:tagtime_medicare/screens/admin_page.dart';
 import 'package:tagtime_medicare/screens/assign_page.dart';
 import 'package:tagtime_medicare/screens/customer_support_page.dart';
