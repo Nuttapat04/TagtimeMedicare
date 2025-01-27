@@ -2,91 +2,101 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>GIDClientID</key>
-	<!-- TODO Replace this value: -->
-	<!-- Copied from GoogleService-Info.plist key CLIENT_ID -->
-	<string>267761223065-i8onljldigf0htbodiv9qm7cjksksk2l.apps.googleusercontent.com</string>
-	<!-- Put me in the [my_project]/ios/Runner/Info.plist file -->
-	<!-- Google Sign-in Section -->
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<!-- TODO Replace this value: -->
-				<!-- Copied from GoogleService-Info.plist key REVERSED_CLIENT_ID -->
-				<string>com.googleusercontent.apps.267761223065-i8onljldigf0htbodiv9qm7cjksksk2l</string>
-			</array>
-		</dict>
-	</array>
-<!-- End of the Google Sign-in Section -->
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleDisplayName</key>
-	<string>Tagtime Medicare</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>tagtime_medicare</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<key>UIBackgroundModes</key>
-<array>
-  <string>fetch</string>
-  <string>remote-notification</string>
-</array>
-<key>NSAppTransportSecurity</key>
-<dict>
-  <key>NSAllowsArbitraryLoads</key>
-  <true/>
-</dict>
-<key>NSUserNotificationUsageDescription</key>
-<string>We use notifications to remind you to take your medicine.</string>
-<key>UIBackgroundModes</key>
-<array>
-  <string>fetch</string>
-  <string>remote-notification</string>
-</array>
-<key>FirebaseAppDelegateProxyEnabled</key>
-<false/>
-<key>NSPhotoLibraryUsageDescription</key>
-<string>We need access to photo library for profile image selection</string>
-<key>NSCameraUsageDescription</key>
-<string>We need access to camera for profile image capture</string>
+   <key>GIDClientID</key>
+   <string>267761223065-i8onljldigf0htbodiv9qm7cjksksk2l.apps.googleusercontent.com</string>
+   
+   <key>CFBundleURLTypes</key>
+   <array>
+       <dict>
+           <key>CFBundleTypeRole</key>
+           <string>Editor</string>
+           <key>CFBundleURLSchemes</key>
+           <array>
+               <string>com.googleusercontent.apps.267761223065-i8onljldigf0htbodiv9qm7cjksksk2l</string>
+           </array>
+       </dict>
+   </array>
+
+   <key>CFBundleDevelopmentRegion</key>
+   <string>$(DEVELOPMENT_LANGUAGE)</string>
+   <key>CFBundleDisplayName</key>
+   <string>Tagtime Medicare</string>
+   <key>CFBundleExecutable</key>
+   <string>$(EXECUTABLE_NAME)</string>
+   <key>CFBundleIdentifier</key>
+   <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+   <key>CFBundleInfoDictionaryVersion</key>
+   <string>6.0</string>
+   <key>CFBundleName</key>
+   <string>tagtime_medicare</string>
+   <key>CFBundlePackageType</key>
+   <string>APPL</string>
+   <key>CFBundleShortVersionString</key>
+   <string>$(FLUTTER_BUILD_NAME)</string>
+   <key>CFBundleSignature</key>
+   <string>????</string>
+   <key>CFBundleVersion</key>
+   <string>$(FLUTTER_BUILD_NUMBER)</string>
+   
+   <key>LSRequiresIPhoneOS</key>
+   <true/>
+   
+   <key>UILaunchStoryboardName</key>
+   <string>LaunchScreen</string>
+   <key>UIMainStoryboardFile</key>
+   <string>Main</string>
+   
+   <key>UISupportedInterfaceOrientations</key>
+   <array>
+       <string>UIInterfaceOrientationPortrait</string>
+       <string>UIInterfaceOrientationLandscapeLeft</string>
+       <string>UIInterfaceOrientationLandscapeRight</string>
+   </array>
+   
+   <key>UISupportedInterfaceOrientations~ipad</key>
+   <array>
+       <string>UIInterfaceOrientationPortrait</string>
+       <string>UIInterfaceOrientationPortraitUpsideDown</string>
+       <string>UIInterfaceOrientationLandscapeLeft</string>
+       <string>UIInterfaceOrientationLandscapeRight</string>
+   </array>
+   
+   <key>CADisableMinimumFrameDurationOnPhone</key>
+   <true/>
+   <key>UIApplicationSupportsIndirectInputEvents</key>
+   <true/>
+   
+   <key>UIBackgroundModes</key>
+   <array>
+       <string>fetch</string>
+       <string>remote-notification</string>
+   </array>
+   
+   <key>NSAppTransportSecurity</key>
+   <dict>
+       <key>NSAllowsArbitraryLoads</key>
+       <true/>
+   </dict>
+   
+   <key>NSUserNotificationUsageDescription</key>
+   <string>We use notifications to remind you to take your medicine.</string>
+   
+   <key>FirebaseAppDelegateProxyEnabled</key>
+   <false/>
+   
+   <key>NSPhotoLibraryUsageDescription</key>
+   <string>We need access to photo library for profile image selection</string>
+   
+   <key>NSCameraUsageDescription</key>
+   <string>We need access to camera for profile image capture</string>
+   
+   <key>NFCReaderUsageDescription</key>
+   <string>Need NFC for scanning RFID tags</string>
+   
+   <key>com.apple.developer.nfc.readersession.formats</key>
+   <array>
+       <string>NDEF</string>
+       <string>TAG</string>
+   </array>
 </dict>
 </plist>

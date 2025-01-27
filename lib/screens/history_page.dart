@@ -73,228 +73,229 @@ class _HistoryPageState extends State<HistoryPage>
   }
 
   Widget _buildListPage() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Medications')
-          .where('user_id', isEqualTo: widget.userId)
-          .orderBy('Updated_at', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() {}); // Refresh data
+      },
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('Medications')
+            .where('user_id', isEqualTo: widget.userId)
+            .orderBy('Updated_at', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final medications = snapshot.data!.docs;
+          final medications = snapshot.data!.docs;
 
-        if (medications.isEmpty) {
-          return const Center(
-            child: Text(
-              'No medications found',
-              style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
-            ),
-          );
-        }
-
-        final itemsToShow = medications.length > displayCount
-            ? displayCount
-            : medications.length;
-
-        // สร้าง list ของ widgets ที่จะแสดง
-        List<Widget> items = [];
-
-        // เพิ่มรายการยาเข้าไปใน list
-        for (var i = 0; i < itemsToShow; i++) {
-          final med = medications[i].data() as Map<String, dynamic>;
-          final name = med['M_name'] ?? 'No name';
-          final time = med['Notification_times'] ?? [];
-          final startDate = med['Start_date'] is Timestamp
-              ? (med['Start_date'] as Timestamp).toDate()
-              : DateTime.now();
-          final endDate = med['End_date'] is Timestamp
-              ? (med['End_date'] as Timestamp).toDate()
-              : DateTime.now();
-          final frequency = med['Frequency'] ?? '1 time/day';
-          final assignedBy = med['Assigned_by'] ?? 'Unknown';
-
-          final formattedStartDate = DateFormat('dd/MM/yyyy').format(startDate);
-          final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
-
-          items.add(
-            Card(
-              margin: const EdgeInsets.symmetric(
-                vertical: 12,
-                horizontal: 16,
+          if (medications.isEmpty) {
+            return const Center(
+              child: Text(
+                'No medications found',
+                style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
               ),
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFC76355),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Frequency: $frequency',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: Color(0xFFC76355),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Times: ${time.join(', ')}',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Dates: $formattedStartDate to $formattedEndDate',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Text(
-                            'Assigned by: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
+            );
+          }
+
+          final itemsToShow = medications.length > displayCount
+              ? displayCount
+              : medications.length;
+
+          return ListView.builder(
+            itemCount: itemsToShow + (medications.length > displayCount ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == itemsToShow) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFC76355),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }
+                    onPressed: () {
+                      setState(() {
+                        displayCount += 10;
+                      });
+                    },
+                    child: const Text(
+                      'See More',
+                      style: TextStyle(
+                        fontSize: 18,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                );
+              }
 
-        // เพิ่มปุ่ม See More ถ้ายังมีรายการเหลือ
-        if (medications.length > displayCount) {
-          items.add(
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC76355),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 12,
-                  ),
-                ),
-                onPressed: () {
-                  setState(() {
-                    displayCount += 10;
-                  });
-                },
-                child: const Text(
-                  'See More',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
+              final med = medications[index].data() as Map<String, dynamic>;
+              final name = med['M_name'] ?? 'No name';
+              final time = med['Notification_times'] ?? [];
+              final startDate = med['Start_date'] is Timestamp
+                  ? (med['Start_date'] as Timestamp).toDate()
+                  : DateTime.now();
+              final endDate = med['End_date'] is Timestamp
+                  ? (med['End_date'] as Timestamp).toDate()
+                  : DateTime.now();
+              final frequency = med['Frequency'] ?? '1 time/day';
+              final assignedBy = med['Assigned_by'] ?? 'Unknown';
 
-        // สร้าง ListView แบบไม่ scrollable
-        return ListView(
-          children: items,
-        );
-      },
+              final formattedStartDate =
+                  DateFormat('dd/MM/yyyy').format(startDate);
+              final formattedEndDate =
+                  DateFormat('dd/MM/yyyy').format(endDate);
+
+              return Card(
+                margin: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              name,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFFC76355),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Frequency: $frequency',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                color: Color(0xFFC76355),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Times: ${time.join(', ')}',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Dates: $formattedStartDate to $formattedEndDate',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Assigned by: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
   Widget _buildHistoryPage() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('Medication_history')
-          .where('User_id', isEqualTo: widget.userId)
-          .orderBy('Intake_time', descending: true)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return RefreshIndicator(
+      onRefresh: () async {
+        setState(() {}); // Refresh data
+      },
+      child: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('Medication_history')
+            .where('User_id', isEqualTo: widget.userId)
+            .orderBy('Intake_time', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final history = snapshot.data!.docs;
+          final history = snapshot.data!.docs;
 
-        if (history.isEmpty) {
-          return const Center(
-            child: Text(
-              'No medication history found',
-              style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
-            ),
-          );
-        }
-
-        return ListView.builder(
-          itemCount: history.length,
-          itemBuilder: (context, index) {
-            final entry = history[index].data() as Map<String, dynamic>;
-            final status = entry['Status'] ?? 'Missed';
-            final time = (entry['Intake_time'] as Timestamp).toDate();
-
-            return Card(
-              margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Status: $status',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFFC76355),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Time: ${DateFormat('hh:mm a on dd/MM/yyyy').format(time)}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        color: Color(0xFFC76355),
-                      ),
-                    ),
-                  ],
-                ),
+          if (history.isEmpty) {
+            return const Center(
+              child: Text(
+                'No medication history found',
+                style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
               ),
             );
-          },
-        );
-      },
+          }
+
+          return ListView.builder(
+            itemCount: history.length,
+            itemBuilder: (context, index) {
+              final entry = history[index].data() as Map<String, dynamic>;
+              final status = entry['Status'] ?? 'Missed';
+              final time = (entry['Intake_time'] as Timestamp).toDate();
+
+              return Card(
+                margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                color: Colors.white,
+                child: Padding(
+                  padding: const EdgeInsets.all(20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Status: $status',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFFC76355),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Time: ${DateFormat('hh:mm a on dd/MM/yyyy').format(time)}',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          color: Color(0xFFC76355),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 }

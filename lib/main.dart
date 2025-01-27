@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:tagtime_medicare/screens/Caregiver_screen.dart';
 import 'package:tagtime_medicare/screens/admin_page.dart';
+import 'package:tagtime_medicare/screens/assign_page.dart';
 import 'package:tagtime_medicare/screens/customer_support_page.dart';
 import 'package:tagtime_medicare/screens/edit_information_page.dart';
+import 'package:tagtime_medicare/screens/nfc_page.dart';
 import 'package:tagtime_medicare/screens/profile_page.dart';
 import 'package:tagtime_medicare/screens/welcome.dart';
 import 'package:tagtime_medicare/screens/splash_screen.dart';
@@ -14,10 +18,22 @@ import 'package:tagtime_medicare/screens/forgetpassword_screen.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  tz.initializeTimeZones();
-  await Firebase.initializeApp();
-  runApp(const MyApp());
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    tz.initializeTimeZones();
+    await Firebase.initializeApp();
+    
+    // เพิ่ม error handling สำหรับ NFC
+    FlutterError.onError = (FlutterErrorDetails details) {
+      print('Flutter Error: ${details.exception}');
+      print('Stack trace: ${details.stack}');
+    };
+    
+    runApp(const MyApp());
+  }, (error, stack) {
+    print('Caught error: $error');
+    print('Stack trace: $stack');
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -32,7 +48,7 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Poly', // ใช้ฟอนต์ Poly เป็นฟอนต์หลัก
         primaryColor: const Color(0xFF763355), // กำหนดสีหลักให้เข้า Theme
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF763355),
+          backgroundColor: Color(0xFFFFF4E0),
           titleTextStyle: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -61,6 +77,8 @@ class MyApp extends StatelessWidget {
         '/caregiver': (context) => CaregiverPage(),
         '/profile': (context) => ProfilePage(),
         '/adminpage': (context) => AdminPage(),
+        '/assignpage': (context) => AssignPage(),
+        '/nfc': (context) => NFCPage(),
       },
     );
   }

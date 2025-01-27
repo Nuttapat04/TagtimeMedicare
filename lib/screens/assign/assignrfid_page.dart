@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:tagtime_medicare/screens/assign/assign_medicine_page.dart';
+import 'package:nfc_manager/nfc_manager.dart';
 
 class AssignRFIDPage extends StatefulWidget {
   final String assignType;
-  final String? caregiverId;  // เพิ่มพารามิเตอร์
-  final String? caregiverName;  // เพิ่มพารามิเตอร์
+  final String? caregiverId;
+  final String? caregiverName;
 
   AssignRFIDPage({
-    required this.assignType, 
-    this.caregiverId, 
-    this.caregiverName
+    required this.assignType,
+    this.caregiverId,
+    this.caregiverName,
   });
 
   @override
@@ -20,12 +21,12 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
   String? scannedUID;
   bool isScanning = false;
 
-  void scanRFID() async {
+  void generateFakeUID() async {
     setState(() {
       isScanning = true;
     });
 
-    // จำลองการสแกน RFID
+    // จำลองการสร้าง UID ปลอม
     await Future.delayed(Duration(seconds: 2));
     String fakeUID = "UID${DateTime.now().millisecondsSinceEpoch}";
 
@@ -34,6 +35,91 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
       isScanning = false;
     });
   }
+
+void scanRealRFID() async {
+  setState(() => isScanning = true);
+
+  try {
+    bool isAvailable = await NfcManager.instance.isAvailable();
+    print("NFC Available: $isAvailable");
+
+    if (!isAvailable) {
+      setState(() => isScanning = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('NFC is not available on this device')),
+      );
+      return;
+    }
+
+    await NfcManager.instance.startSession(
+      onDiscovered: (NfcTag tag) async {
+        try {
+          print("Tag discovered: ${tag.data}");
+
+          // ตรวจสอบข้อมูล tag
+          final mifare = tag.data['mifare'];
+          if (mifare == null) {
+            throw 'Tag is not MIFARE format';
+          }
+
+          final identifier = mifare['identifier'];
+          if (identifier == null) {
+            throw 'No identifier found';
+          }
+
+          // แปลง UID เป็น String
+          final uid = List<int>.from(identifier)
+              .map((e) => e.toRadixString(16).padLeft(2, '0'))
+              .join('')
+              .toUpperCase();
+
+          print("Processed UID: $uid");
+
+          setState(() {
+            scannedUID = uid;
+            isScanning = false;
+          });
+
+          await NfcManager.instance.stopSession();
+
+          // ส่ง UID ไปยัง AssignMedicinePage
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AssignMedicinePage(
+                uid: uid,
+                assignType: widget.assignType,
+                caregiverId: widget.caregiverId,
+                caregiverName: widget.caregiverName,
+              ),
+            ),
+          );
+        } catch (e) {
+          print("Error processing tag: $e");
+          await NfcManager.instance.stopSession();
+          setState(() => isScanning = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error reading tag: $e')),
+          );
+        }
+      },
+      onError: (NfcError error) async {
+        print("NFC Error: ${error.message}");
+        await NfcManager.instance.stopSession();
+        setState(() => isScanning = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('NFC Error: ${error.message}')),
+        );
+      },
+    );
+  } catch (e) {
+    print("Error starting NFC: $e");
+    setState(() => isScanning = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error starting NFC: $e')),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +141,6 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Image.asset(
               'images/LOGOAYD.png',
@@ -88,7 +173,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               Column(
                 children: [
                   const Text(
-                    'RFID Scanned Successfully!',
+                    'UID Scanned Successfully!',
                     style: TextStyle(
                       fontSize: 20,
                       color: Colors.green,
@@ -107,23 +192,43 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               )
             else
               const Text(
-                'Press "Scan RFID" to begin',
+                'Select an option to begin',
                 style: TextStyle(
                   fontSize: 18,
                   color: Color(0xFFC76355),
                 ),
               ),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: scanRFID,
+            ElevatedButton.icon(
+              onPressed: generateFakeUID,
+              icon: const Icon(Icons.sim_card, color: Colors.white),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFC76355),
+                backgroundColor: Colors.orange,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25.0),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
-              child: const Text(
+              label: const Text(
+                'USE SIMULATED UID',
+                style: TextStyle(
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: scanRealRFID,
+              icon: const Icon(Icons.nfc, color: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(25.0),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+              ),
+              label: const Text(
                 'SCAN RFID',
                 style: TextStyle(
                   fontSize: 18,
@@ -133,7 +238,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
             ),
             const SizedBox(height: 20),
             if (scannedUID != null)
-              ElevatedButton(
+              ElevatedButton.icon(
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -147,14 +252,15 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                     ),
                   );
                 },
+                icon: const Icon(Icons.arrow_forward, color: Colors.white),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blueGrey,
+                  backgroundColor: Colors.green,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(25.0),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                 ),
-                child: const Text(
+                label: const Text(
                   'NEXT',
                   style: TextStyle(
                     fontSize: 18,

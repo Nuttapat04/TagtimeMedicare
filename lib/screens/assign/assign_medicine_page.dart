@@ -22,7 +22,6 @@ class AssignMedicinePage extends StatefulWidget {
 class _AssignMedicinePageState extends State<AssignMedicinePage> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController propertiesController = TextEditingController();
-  final _formKey = GlobalKey<FormState>();
 
   DateTime? startDate;
   DateTime? endDate;
@@ -136,7 +135,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
         const SnackBar(content: Text('Medication assigned successfully!')),
       );
 
-      Navigator.pop(context);
+      Navigator.pushReplacementNamed(context, '/assignpage');
 
     } catch (e) {
       print('Error saving data: $e');

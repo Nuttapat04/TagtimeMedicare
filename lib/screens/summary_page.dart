@@ -64,7 +64,9 @@ class _SummaryPageState extends State<SummaryPage>
   }
 
   Widget _buildListPage() {
-    return StreamBuilder<QuerySnapshot>(
+  return RefreshIndicator(
+    onRefresh: _refreshData, // ฟังก์ชันที่ใช้รีเฟรชข้อมูล
+    child: StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('Medications')
           .where('user_id', isEqualTo: widget.userId)
@@ -116,169 +118,173 @@ class _SummaryPageState extends State<SummaryPage>
         }
 
         return ListView.builder(
-  itemCount: filteredMedications.length,
-  itemBuilder: (context, index) {
-    final med = filteredMedications[index].data() as Map<String, dynamic>;
-    final name = med['M_name'] ?? 'No name';
-    final time = med['Notification_times'] ?? [];
-    final startDate = med['Start_date'] is Timestamp
-        ? (med['Start_date'] as Timestamp).toDate()
-        : DateTime.now();
-    final endDate = med['End_date'] is Timestamp
-        ? (med['End_date'] as Timestamp).toDate()
-        : DateTime.now();
-    final assignedBy = med['Assigned_by'] ?? 'Unknown';
+          itemCount: filteredMedications.length,
+          itemBuilder: (context, index) {
+            final med = filteredMedications[index].data() as Map<String, dynamic>;
+            final name = med['M_name'] ?? 'No name';
+            final time = med['Notification_times'] ?? [];
+            final startDate = med['Start_date'] is Timestamp
+                ? (med['Start_date'] as Timestamp).toDate()
+                : DateTime.now();
+            final endDate = med['End_date'] is Timestamp
+                ? (med['End_date'] as Timestamp).toDate()
+                : DateTime.now();
+            final assignedBy = med['Assigned_by'] ?? 'Unknown';
 
-    // เวลาปัจจุบัน
-    final now = DateTime.now();
+            // เวลาปัจจุบัน
+            final now = DateTime.now();
 
-    Color statusColor = Colors.grey;
-    String statusText = '';
+            Color statusColor = Colors.grey;
+            String statusText = '';
 
-    if (now.isBefore(startDate)) {
-      // ยังไม่ถึง startDate
-      final totalDays = endDate.difference(startDate).inDays;
-      statusText = 'Total duration: $totalDays days';
-      statusColor = Colors.orange;
-    } else if (now.isAfter(endDate)) {
-      // เกิน endDate
-      statusText = 'Today';
-      statusColor = Colors.red;
-    } else {
-      // อยู่ในช่วง startDate ถึง endDate
-      final remainingDays = endDate.difference(now).inDays;
-      final remainingHours = endDate.difference(now).inHours % 24;
-      statusText = '$remainingDays days $remainingHours hours left';
-      statusColor = Colors.green;
-    }
+            if (now.isBefore(startDate)) {
+              // ยังไม่ถึง startDate
+              final totalDays = endDate.difference(startDate).inDays;
+              statusText = 'Total duration: $totalDays days';
+              statusColor = Colors.orange;
+            } else if (now.isAfter(endDate)) {
+              // เกิน endDate
+              statusText = 'Today';
+              statusColor = Colors.red;
+            } else {
+              // อยู่ในช่วง startDate ถึง endDate
+              final remainingDays = endDate.difference(now).inDays;
+              final remainingHours = endDate.difference(now).inHours % 24;
+              statusText = '$remainingDays days $remainingHours hours left';
+              statusColor = Colors.green;
+            }
 
-    final formattedStartDate = DateFormat('dd/MM/yyyy').format(startDate);
-    final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
+            final formattedStartDate = DateFormat('dd/MM/yyyy').format(startDate);
+            final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-      ),
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          name,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFFC76355),
+            return Card(
+              margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              elevation: 6,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFC76355),
+                                  ),
+                                ),
+                              ),
+                              if (statusText.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: statusColor),
+                                  ),
+                                  child: Text(
+                                    statusText,
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                      ),
-                      if (statusText.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: statusColor.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: statusColor),
-                          ),
-                          child: Text(
-                            statusText,
-                            style: TextStyle(
-                              color: statusColor,
-                              fontWeight: FontWeight.bold,
+                          const SizedBox(height: 10),
+                          Text(
+                            'Frequency: ${med['Frequency']}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: Color(0xFFC76355),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Frequency: ${med['Frequency']}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: Color(0xFFC76355),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Times: ${time.join(', ')}',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: Colors.black,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Dates: $formattedStartDate to $formattedEndDate',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              color: Colors.grey,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Assigned by: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Times: ${time.join(', ')}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.black,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Dates: $formattedStartDate to $formattedEndDate',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Assigned by: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      color: Colors.grey,
-                    ),
-                  ),
-                ],
+                    assignedBy != 'Pharmacist'
+                        ? Column(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit,
+                                    size: 30, color: Color(0xFFC76355)),
+                                onPressed: () => _showEditDialog(
+                                    filteredMedications[index].id, med),
+                              ),
+                              const SizedBox(height: 50),
+                              IconButton(
+                                icon: const Icon(Icons.delete,
+                                    size: 30, color: Colors.red),
+                                onPressed: () => _showDeleteConfirmationDialog(
+                                    filteredMedications[index].id),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.delete,
+                                    size: 30, color: Colors.red),
+                                onPressed: () => _showDeleteConfirmationDialog(
+                                    filteredMedications[index].id),
+                              ),
+                            ],
+                          ),
+                  ],
+                ),
               ),
-            ),
-            assignedBy != 'Pharmacist'
-                ? Column(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.edit,
-                            size: 30, color: Color(0xFFC76355)),
-                        onPressed: () => _showEditDialog(
-                            filteredMedications[index].id, med),
-                      ),
-                      const SizedBox(height: 50),
-                      IconButton(
-                        icon: const Icon(Icons.delete,
-                            size: 30, color: Colors.red),
-                        onPressed: () => _showDeleteConfirmationDialog(
-                            filteredMedications[index].id),
-                      ),
-                    ],
-                  )
-                : Column(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.delete,
-                            size: 30, color: Colors.red),
-                        onPressed: () => _showDeleteConfirmationDialog(
-                            filteredMedications[index].id),
-                      ),
-                    ],
-                  ),
-          ],
-        ),
-      ),
-    );
-  },
-);
-
-
+            );
+          },
+        );
       },
-    );
-  }
+    ),
+  );
+}
+
+Future<void> _refreshData() async {
+  // เพิ่มฟังก์ชันนี้เพื่อรีเฟรชข้อมูลใหม่
+  setState(() {});
+}
 
   Widget _buildSummaryPage() {
     return const Center(
