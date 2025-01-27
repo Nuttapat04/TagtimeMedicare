@@ -4,33 +4,30 @@ import FirebaseCore
 import CoreNFC
 
 @main
+@available(iOS 13.0, *)
 @objc class AppDelegate: FlutterAppDelegate {
-    private var nfcSession: NFCNDEFReaderSession?
+    private var nfcSession: NFCTagReaderSession?
+    private var flutterResult: FlutterResult?
 
     override func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        NSLog("App is starting...")
         FirebaseApp.configure()
         GeneratedPluginRegistrant.register(with: self)
 
-        // ตั้งค่า MethodChannel สำหรับ NFC
+        // ตั้งค่า MethodChannel
         let controller = window?.rootViewController as! FlutterViewController
         let nfcChannel = FlutterMethodChannel(name: "flutter_nfc_reader_writer", binaryMessenger: controller.binaryMessenger)
 
-        nfcChannel.setMethodCallHandler { [weak self] (call, result) in
+        nfcChannel.setMethodCallHandler { [weak self] call, result in
             guard let self = self else { return }
-
             switch call.method {
             case "NfcRead":
-                self.startNfcRead(result: result)
-            case "NfcWrite":
-                if let arguments = call.arguments as? [String: String],
-                   let dataToWrite = arguments["data"] {
-                    self.startNfcWrite(data: dataToWrite, result: result)
+                if #available(iOS 13.0, *) {
+                    self.startNfcRead(result: result)
                 } else {
-                    result(FlutterError(code: "INVALID_ARGUMENTS", message: "Missing data to write", details: nil))
+                    result(FlutterError(code: "NFC_NOT_SUPPORTED", message: "NFC requires iOS 13.0+", details: nil))
                 }
             default:
                 result(FlutterMethodNotImplemented)
@@ -40,40 +37,80 @@ import CoreNFC
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 
-    // ฟังก์ชันสำหรับอ่าน NFC
+    @available(iOS 13.0, *)
     private func startNfcRead(result: @escaping FlutterResult) {
-        guard NFCNDEFReaderSession.readingAvailable else {
+        guard NFCTagReaderSession.readingAvailable else {
             result(FlutterError(code: "NFC_NOT_SUPPORTED", message: "NFC is not supported on this device", details: nil))
             return
         }
 
-        nfcSession = NFCNDEFReaderSession(delegate: self, queue: nil, invalidateAfterFirstRead: true)
-        nfcSession?.begin()
-        result("NFC Read session started")
-    }
+        flutterResult = result
+        
+        // ใช้ guard let เพื่อ unwrap
+        guard let session = NFCTagReaderSession(pollingOption: .iso14443, delegate: self, queue: nil) else {
+            result(FlutterError(code: "NFC_SESSION_ERROR", message: "Cannot create NFC Tag Reader Session", details: nil))
+            return
+        }
 
-    // ฟังก์ชันสำหรับเขียน NFC
-    private func startNfcWrite(data: String, result: @escaping FlutterResult) {
-        // การเขียน NFC ต้องการเพิ่มเติมการตั้งค่า NFCNDEFWriterSession
-        result(FlutterError(code: "NFC_WRITE_NOT_IMPLEMENTED", message: "Writing NFC not implemented yet", details: nil))
+        session.alertMessage = "Hold your iPhone near an NFC tag to read its serial number."
+        session.begin()
+
+        // เก็บอ้างอิงไว้ เพื่อจะได้หยุด session หรือใช้งานต่อ
+        nfcSession = session
     }
 }
 
-// Extension สำหรับจัดการ NFCNDEFReaderSessionDelegate
-extension AppDelegate: NFCNDEFReaderSessionDelegate {
-    func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
-        if let nfcError = error as? NFCReaderError, nfcError.code != .readerSessionInvalidationErrorUserCanceled {
-            NSLog("NFC Session Error: \(error.localizedDescription)")
-        }
+@available(iOS 13.0, *)
+extension AppDelegate: NFCTagReaderSessionDelegate {
+    func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
+        print("NFC Tag Reader Session is now active.")
     }
 
-    func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
-        for message in messages {
-            for record in message.records {
-                if let payload = String(data: record.payload, encoding: .utf8) {
-                    NSLog("NFC Record: \(payload)")
-                }
+    func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
+        if let nfcError = error as? NFCReaderError,
+           nfcError.code != .readerSessionInvalidationErrorUserCanceled {
+            flutterResult?(FlutterError(code: "NFC_SESSION_ERROR",
+                                        message: error.localizedDescription,
+                                        details: nil))
+        }
+        flutterResult = nil
+        nfcSession = nil
+    }
+
+    func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
+        guard let tag = tags.first else {
+            flutterResult?(FlutterError(code: "NFC_NO_TAG",
+                                        message: "No NFC tag found",
+                                        details: nil))
+            session.invalidate()
+            return
+        }
+
+        session.connect(to: tag) { [weak self] error in
+            guard let self = self else { return }
+            if let error = error {
+                session.invalidate(errorMessage: "Connection error: \(error.localizedDescription)")
+                return
             }
+
+            switch tag {
+            case let .miFare(mifareTag):
+                let uidData = mifareTag.identifier
+                let uidString = uidData.map { String(format: "%02X", $0) }.joined()
+                self.flutterResult?(["serialNumber": uidString])
+
+            case let .iso7816(iso7816Tag):
+                let uidData = iso7816Tag.identifier
+                let uidString = uidData.map { String(format: "%02X", $0) }.joined()
+                self.flutterResult?(["serialNumber": uidString])
+
+            default:
+                session.invalidate(errorMessage: "Tag not supported")
+                return
+            }
+
+            session.invalidate()
+            self.nfcSession = nil
         }
     }
 }
