@@ -49,7 +49,7 @@ class _WelcomePageState extends State<WelcomePage> {
                           'Welcome to',
                           style: TextStyle(
                             fontSize: 24,
-                            color: Color(0xFFD84315),
+                            color: Color(0xFFC76355),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -57,7 +57,7 @@ class _WelcomePageState extends State<WelcomePage> {
                           'Tagtime Medicare',
                           style: TextStyle(
                             fontSize: 32,
-                            color: Color(0xFFD84315),
+                            color: Color(0xFFC76355),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -90,7 +90,7 @@ class _WelcomePageState extends State<WelcomePage> {
                         Navigator.pushNamed(context, '/login');
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD84315), // สีปุ่ม Log in
+                        backgroundColor: const Color(0xFFC76355), // สีปุ่ม Log in
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25.0),
                         ),
@@ -114,7 +114,7 @@ class _WelcomePageState extends State<WelcomePage> {
                       },
                       style: OutlinedButton.styleFrom(
                         backgroundColor: const Color(0xFFFFF4E0),
-                        side: const BorderSide(color: Color(0xFFD84315)),
+                        side: const BorderSide(color: Color(0xFFC76355)),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(25.0),
                         ),
@@ -125,7 +125,7 @@ class _WelcomePageState extends State<WelcomePage> {
                       ),
                       child: const Text(
                         'Sign up',
-                        style: TextStyle(fontSize: 18, color: Color(0xFFD84315)),
+                        style: TextStyle(fontSize: 18, color: Color(0xFFC76355)),
                       ),
                     ),
                   ),

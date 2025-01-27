@@ -32,6 +32,7 @@ class _SummaryPageState extends State<SummaryPage>
     return Scaffold(
       backgroundColor: const Color(0xFFFEF4E0),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFFFEF4E0),
         title: const Text(
           "Summary",
@@ -45,8 +46,7 @@ class _SummaryPageState extends State<SummaryPage>
           indicatorColor: const Color(0xFFC76355),
           labelColor: const Color(0xFFC76355),
           unselectedLabelColor: Colors.grey,
-          labelStyle:
-              const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          labelStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: 'Current Medicines'),
             Tab(text: 'Summary'),
@@ -64,7 +64,9 @@ class _SummaryPageState extends State<SummaryPage>
   }
 
   Widget _buildListPage() {
-    return StreamBuilder<QuerySnapshot>(
+  return RefreshIndicator(
+    onRefresh: _refreshData, // ฟังก์ชันที่ใช้รีเฟรชข้อมูล
+    child: StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('Medications')
           .where('user_id', isEqualTo: widget.userId)
@@ -98,20 +100,27 @@ class _SummaryPageState extends State<SummaryPage>
             final hour = int.parse(timeParts[0]);
             final minute = int.parse(timeParts[1]);
 
-            final notificationTime = DateTime(
+            final lastNotificationTime = DateTime(
                 endDate.year, endDate.month, endDate.day, hour, minute);
 
-            return notificationTime.isAfter(DateTime.now());
+            return lastNotificationTime.isAfter(DateTime.now());
           }
-
           return false;
         }).toList();
+
+        if (filteredMedications.isEmpty) {
+          return const Center(
+            child: Text(
+              'No active medications',
+              style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
+            ),
+          );
+        }
 
         return ListView.builder(
           itemCount: filteredMedications.length,
           itemBuilder: (context, index) {
-            final med =
-                filteredMedications[index].data() as Map<String, dynamic>;
+            final med = filteredMedications[index].data() as Map<String, dynamic>;
             final name = med['M_name'] ?? 'No name';
             final time = med['Notification_times'] ?? [];
             final startDate = med['Start_date'] is Timestamp
@@ -122,8 +131,30 @@ class _SummaryPageState extends State<SummaryPage>
                 : DateTime.now();
             final assignedBy = med['Assigned_by'] ?? 'Unknown';
 
-            final formattedStartDate =
-                DateFormat('dd/MM/yyyy').format(startDate);
+            // เวลาปัจจุบัน
+            final now = DateTime.now();
+
+            Color statusColor = Colors.grey;
+            String statusText = '';
+
+            if (now.isBefore(startDate)) {
+              // ยังไม่ถึง startDate
+              final totalDays = endDate.difference(startDate).inDays;
+              statusText = 'Total duration: $totalDays days';
+              statusColor = Colors.orange;
+            } else if (now.isAfter(endDate)) {
+              // เกิน endDate
+              statusText = 'Today';
+              statusColor = Colors.red;
+            } else {
+              // อยู่ในช่วง startDate ถึง endDate
+              final remainingDays = endDate.difference(now).inDays;
+              final remainingHours = endDate.difference(now).inHours % 24;
+              statusText = '$remainingDays days $remainingHours hours left';
+              statusColor = Colors.green;
+            }
+
+            final formattedStartDate = DateFormat('dd/MM/yyyy').format(startDate);
             final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
 
             return Card(
@@ -142,13 +173,39 @@ class _SummaryPageState extends State<SummaryPage>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            name,
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFFC76355),
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  style: const TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFC76355),
+                                  ),
+                                ),
+                              ),
+                              if (statusText.isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: statusColor),
+                                  ),
+                                  child: Text(
+                                    statusText,
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                           const SizedBox(height: 10),
                           Text(
@@ -194,7 +251,7 @@ class _SummaryPageState extends State<SummaryPage>
                                 onPressed: () => _showEditDialog(
                                     filteredMedications[index].id, med),
                               ),
-                              const SizedBox(height: 50), // เพิ่มระยะห่าง
+                              const SizedBox(height: 50),
                               IconButton(
                                 icon: const Icon(Icons.delete,
                                     size: 30, color: Colors.red),
@@ -220,13 +277,19 @@ class _SummaryPageState extends State<SummaryPage>
           },
         );
       },
-    );
-  }
+    ),
+  );
+}
+
+Future<void> _refreshData() async {
+  // เพิ่มฟังก์ชันนี้เพื่อรีเฟรชข้อมูลใหม่
+  setState(() {});
+}
 
   Widget _buildSummaryPage() {
-    return Center(
+    return const Center(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: EdgeInsets.all(16.0),
         child: Text(
           'รอเชื่อม device จริงก่อน, ยังทำไม่ได้',
           textAlign: TextAlign.center,
@@ -282,8 +345,7 @@ class _SummaryPageState extends State<SummaryPage>
                     const SizedBox(height: 16),
                     TextField(
                       controller: propertiesController,
-                      decoration:
-                          const InputDecoration(labelText: 'Properties'),
+                      decoration: const InputDecoration(labelText: 'Properties'),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
@@ -334,6 +396,28 @@ class _SummaryPageState extends State<SummaryPage>
                           onChanged: (value) {
                             setDialogState(() {
                               frequency = value!;
+                              // Update notification times based on frequency
+                              if (frequency == 1) {
+                                notificationTimes = [TimeOfDay(hour: 8, minute: 0)];
+                              } else if (frequency == 2) {
+                                notificationTimes = [
+                                  TimeOfDay(hour: 8, minute: 0),
+                                  TimeOfDay(hour: 19, minute: 0)
+                                ];
+                              } else if (frequency == 3) {
+                                notificationTimes = [
+                                  TimeOfDay(hour: 8, minute: 0),
+                                  TimeOfDay(hour: 13, minute: 0),
+                                  TimeOfDay(hour: 19, minute: 0)
+                                ];
+                              } else if (frequency == 4) {
+                                notificationTimes = [
+                                  TimeOfDay(hour: 8, minute: 0),
+                                  TimeOfDay(hour: 12, minute: 0),
+                                  TimeOfDay(hour: 16, minute: 0),
+                                  TimeOfDay(hour: 20, minute: 0)
+                                ];
+                              }
                             });
                           },
                         ),
@@ -341,67 +425,98 @@ class _SummaryPageState extends State<SummaryPage>
                     ),
                     const SizedBox(height: 16),
                     Column(
-                      children:
-                          List.generate(notificationTimes.length, (index) {
-                        return ElevatedButton(
-                          onPressed: () async {
-                            final TimeOfDay? pickedTime = await showTimePicker(
-                              context: context,
-                              initialTime: notificationTimes[index],
-                            );
-                            if (pickedTime != null) {
-                              setDialogState(() {
-                                notificationTimes[index] = pickedTime;
-                              });
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFC76355),
-                          ),
-                          child: Text(
-                            'Time ${index + 1}: ${notificationTimes[index].format(context)}',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        );
-                      }),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Notification Times:',
+                          style: TextStyle(color: Color(0xFFC76355)),
+                        ),
+                        const SizedBox(height: 10),
+                        ...notificationTimes.asMap().entries.map((entry) {
+                          int index = entry.key;
+                          TimeOfDay time = entry.value;
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${index + 1}: ${time.format(context)}',
+                                style: const TextStyle(color: Colors.black),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit,
+                                    color: Color(0xFFC76355)),
+                                onPressed: () async {
+                                  final TimeOfDay? pickedTime =
+                                      await showTimePicker(
+                                    context: context,
+                                    initialTime: time,
+                                  );
+                                  if (pickedTime != null) {
+                                    setDialogState(() {
+                                      notificationTimes[index] = pickedTime;
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
+                          );
+                        }),
+                      ],
                     ),
                   ],
                 ),
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Color(0xFFC76355)),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    await FirebaseFirestore.instance
-                        .collection('Medications')
-                        .doc(docId)
-                        .update({
-                      'M_name': nameController.text,
-                      'Properties': propertiesController.text,
-                      'Start_date': startDate,
-                      'End_date': endDate,
-                      'Frequency': '$frequency times/day',
-                      'Notification_times': notificationTimes.map((time) {
-                        return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-                      }).toList(),
-                      'Updated_at': Timestamp.now(),
-                    });
-
+                  onPressed: () {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Medication updated successfully!')),
-                    );
                   },
                   child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    // Save updated medication to Firestore
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('Medications')
+                          .doc(docId)
+                          .update({
+                        'M_name': nameController.text.trim(),
+                        'Properties': propertiesController.text.trim(),
+                        'Start_date': startDate,
+                        'End_date': endDate,
+                        'Frequency': '$frequency times/day',
+                        'Notification_times': notificationTimes
+                            .map((time) =>
+                                '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}')
+                            .toList(),
+                        'Updated_at': FieldValue.serverTimestamp(),
+                      });
+
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Medication updated successfully!'),
+                        ),
+                      );
+                    } catch (e) {
+                      print('Error updating medication: $e');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Failed to update medication!'),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC76355),
+                  ),
+                  child: const Text(
                     'Save',
-                    style: TextStyle(color: Color(0xFFC76355)),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -415,29 +530,57 @@ class _SummaryPageState extends State<SummaryPage>
   void _showDeleteConfirmationDialog(String docId) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          title: const Text('Confirm Deletion'),
-          content:
-              const Text('Are you sure you want to delete this medication?'),
-          actions: <Widget>[
+          backgroundColor: const Color(0xFFFEF4E0),
+          title: const Text(
+            'Confirm Delete',
+            style: TextStyle(color: Color(0xFFC76355)),
+          ),
+          content: const Text(
+            'Are you sure you want to delete this medication?',
+            style: TextStyle(color: Colors.black),
+          ),
+          actions: [
             TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                await FirebaseFirestore.instance
-                    .collection('Medications')
-                    .doc(docId)
-                    .delete();
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                      content: Text('Medication deleted successfully!')),
-                );
+              onPressed: () {
+                Navigator.pop(context);
               },
-              child: const Text('Delete'),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('Medications')
+                      .doc(docId)
+                      .delete();
+
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Medication deleted successfully!'),
+                    ),
+                  );
+                } catch (e) {
+                  print('Error deleting medication: $e');
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to delete medication!'),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );

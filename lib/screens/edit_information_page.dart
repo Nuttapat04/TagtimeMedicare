@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class EditInformationPage extends StatefulWidget {
   @override
@@ -14,10 +15,12 @@ class _EditInformationPageState extends State<EditInformationPage> {
   final TextEditingController surnameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController dateController = TextEditingController();
 
   String email = '';
-  String dateOfBirth = '';
   bool isLoading = true;
+  String loginType = '';
+  DateTime? selectedDate;
 
   @override
   void initState() {
@@ -40,7 +43,16 @@ class _EditInformationPageState extends State<EditInformationPage> {
           surnameController.text = userData['Surname'] ?? '';
           phoneController.text = userData['Phone'] ?? '';
           email = user.email ?? '';
-          dateOfBirth = userData['Date_of_Birth'] ?? '';
+          loginType = userData['loginType'] ?? '';
+
+          // Handle date of birth
+          if (userData['Date_of_Birth'] != null) {
+            if (userData['Date_of_Birth'] is Timestamp) {
+              selectedDate = (userData['Date_of_Birth'] as Timestamp).toDate();
+              dateController.text = formatDate(selectedDate!);
+            }
+          }
+          
           isLoading = false;
         });
       }
@@ -52,17 +64,47 @@ class _EditInformationPageState extends State<EditInformationPage> {
     }
   }
 
+  String formatDate(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date);
+  }
+
+  Future<void> _selectDate(BuildContext context) async {
+    DateTime? pickedDate = await showDatePicker(
+      context: context,
+      initialDate: selectedDate ?? DateTime.now(),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+
+    if (pickedDate != null) {
+      setState(() {
+        selectedDate = pickedDate;
+        dateController.text = formatDate(pickedDate);
+      });
+    }
+  }
+
   Future<void> updateUserData() async {
     if (_formKey.currentState!.validate()) {
       try {
         final user = _auth.currentUser;
 
         if (user != null) {
-          await FirebaseFirestore.instance.collection('Users').doc(user.uid).update({
+          Map<String, dynamic> updateData = {
             'Name': nameController.text.trim(),
             'Surname': surnameController.text.trim(),
             'Phone': phoneController.text.trim(),
-          });
+          };
+
+          // Only update Date_of_Birth if a date was selected
+          if (selectedDate != null) {
+            updateData['Date_of_Birth'] = Timestamp.fromDate(selectedDate!);
+          }
+
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(user.uid)
+              .update(updateData);
 
           if (passwordController.text.isNotEmpty) {
             await user.updatePassword(passwordController.text.trim());
@@ -72,7 +114,7 @@ class _EditInformationPageState extends State<EditInformationPage> {
             const SnackBar(content: Text('Information updated successfully!')),
           );
 
-          Navigator.pop(context); // กลับไปหน้าก่อนหน้า
+          Navigator.pop(context); // Return to previous screen
         }
       } catch (e) {
         print('Error updating user data: $e');
@@ -91,9 +133,7 @@ class _EditInformationPageState extends State<EditInformationPage> {
         backgroundColor: const Color(0xFFFFF4E0),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFFC76355)),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'Edit Information',
@@ -105,7 +145,7 @@ class _EditInformationPageState extends State<EditInformationPage> {
       ),
       backgroundColor: const Color(0xFFFFF4E0),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC76355)))
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Form(
@@ -198,14 +238,24 @@ class _EditInformationPageState extends State<EditInformationPage> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      initialValue: dateOfBirth,
-                      readOnly: true,
+                      controller: dateController,
                       decoration: InputDecoration(
                         labelText: 'Date of Birth',
                         filled: true,
-                        fillColor: Colors.grey[200],
+                        fillColor: Colors.white,
                         border: const OutlineInputBorder(),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.calendar_today),
+                          onPressed: () => _selectDate(context),
+                        ),
                       ),
+                      readOnly: true, // Always readonly since we use date picker
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select your date of birth';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 32),
                     ElevatedButton(

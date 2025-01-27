@@ -9,7 +9,20 @@ class AssignPage extends StatelessWidget {
       backgroundColor: const Color(0xFFFFF4E0),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFF8E1),
-        elevation: 0,
+        elevation: 0,  
+        leading: IconButton(
+          icon: const Text(
+            '<',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFC76355),
+            ),
+          ),
+          onPressed: () {
+            Navigator.pop(context); // เพิ่มฟังก์ชันเพื่อกลับไปยังหน้าก่อนหน้า
+          },
+        ),
         title: const Text(
           'Assign',
           style: TextStyle(
@@ -57,7 +70,7 @@ class AssignPage extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD84315),
+                    backgroundColor: Color(0xFFC76355),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25.0),
                     ),
@@ -84,7 +97,7 @@ class AssignPage extends StatelessWidget {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFD84315),
+                    backgroundColor: Color(0xFFC76355),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25.0),
                     ),

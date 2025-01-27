@@ -53,6 +53,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
       backgroundColor: const Color(0xFFFFF4E0),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFF8E1),
+        automaticallyImplyLeading: false,
         elevation: 0,
         title: const Text(
           'Place RFID',
@@ -133,7 +134,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFD84315),
+                backgroundColor: Color(0xFFC76355),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(25.0),
                 ),

@@ -36,6 +36,8 @@ dependencies:
   firebase_storage: ^12.4.0
   flutter_local_notifications: ^12.0.0
   timezone: ^0.9.0
+  nfc_manager: ^3.3.0
+  
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -44,7 +46,6 @@ dependencies:
   shared_preferences: ^2.3.5
   intl: ^0.18.0
   google_sign_in: ^6.2.2
-  #google_sign_in: ^6.2.2
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +69,7 @@ flutter:
     - images/welcome2.png
     - images/welcome3.png
     - images/welcome4.png
+    - images/google_logo.png
 
   
   # The following line ensures that the Material Icons font is
