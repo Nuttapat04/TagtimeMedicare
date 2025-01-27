@@ -2,10 +2,11 @@ import Flutter
 import UIKit
 import FirebaseCore
 import CoreNFC
+import UserNotifications
 
 @main
 @available(iOS 13.0, *)
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate{
     private var nfcSession: NFCTagReaderSession?
     private var flutterResult: FlutterResult?
 
@@ -16,7 +17,18 @@ import CoreNFC
         FirebaseApp.configure()
         GeneratedPluginRegistrant.register(with: self)
 
-        // ตั้งค่า MethodChannel
+        // ขอ permission สำหรับ notification
+        UNUserNotificationCenter.current().delegate = self
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                DispatchQueue.main.async {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
+            }
+        }
+
+        // ตั้งค่า MethodChannel สำหรับ NFC
         let controller = window?.rootViewController as! FlutterViewController
         let nfcChannel = FlutterMethodChannel(name: "flutter_nfc_reader_writer", binaryMessenger: controller.binaryMessenger)
 
@@ -37,6 +49,37 @@ import CoreNFC
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 
+    // แสดง notification แม้แอพจะอยู่ใน foreground
+    override func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        if #available(iOS 14.0, *) {
+            completionHandler([[.banner, .sound]])
+        } else {
+            completionHandler([[.alert, .sound]])
+        }
+    }
+
+    // จัดการเมื่อกดที่ notification
+    override func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let userInfo = response.notification.request.content.userInfo
+        if let controller = window?.rootViewController as? FlutterViewController {
+            let channel = FlutterMethodChannel(
+                name: "flutter_notification_tap",
+                binaryMessenger: controller.binaryMessenger
+            )
+            channel.invokeMethod("notificationTapped", arguments: userInfo)
+        }
+        completionHandler()
+    }
+
+    // NFC Methods
     @available(iOS 13.0, *)
     private func startNfcRead(result: @escaping FlutterResult) {
         guard NFCTagReaderSession.readingAvailable else {
@@ -46,7 +89,6 @@ import CoreNFC
 
         flutterResult = result
         
-        // ใช้ guard let เพื่อ unwrap
         guard let session = NFCTagReaderSession(pollingOption: .iso14443, delegate: self, queue: nil) else {
             result(FlutterError(code: "NFC_SESSION_ERROR", message: "Cannot create NFC Tag Reader Session", details: nil))
             return
@@ -54,8 +96,6 @@ import CoreNFC
 
         session.alertMessage = "Hold your iPhone near an NFC tag to read its serial number."
         session.begin()
-
-        // เก็บอ้างอิงไว้ เพื่อจะได้หยุด session หรือใช้งานต่อ
         nfcSession = session
     }
 }
@@ -70,8 +110,8 @@ extension AppDelegate: NFCTagReaderSessionDelegate {
         if let nfcError = error as? NFCReaderError,
            nfcError.code != .readerSessionInvalidationErrorUserCanceled {
             flutterResult?(FlutterError(code: "NFC_SESSION_ERROR",
-                                        message: error.localizedDescription,
-                                        details: nil))
+                                      message: error.localizedDescription,
+                                      details: nil))
         }
         flutterResult = nil
         nfcSession = nil
@@ -80,8 +120,8 @@ extension AppDelegate: NFCTagReaderSessionDelegate {
     func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
         guard let tag = tags.first else {
             flutterResult?(FlutterError(code: "NFC_NO_TAG",
-                                        message: "No NFC tag found",
-                                        details: nil))
+                                      message: "No NFC tag found",
+                                      details: nil))
             session.invalidate()
             return
         }

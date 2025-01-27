@@ -16,6 +16,7 @@ import 'package:tagtime_medicare/screens/register_page.dart';
 import 'package:tagtime_medicare/screens/forgetpassword_screen.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
+
 void main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();

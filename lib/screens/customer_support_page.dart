@@ -37,7 +37,7 @@ class CustomerSupportPage extends StatelessWidget {
             ),
             SizedBox(height: 8),
             Text(
-              'Address: 111/1 Huaykwang Bangkok 10310',
+              'Address: 1518 ถนน ​ประชา​ราษฎร์​1 แขวงวงศ์สว่าง เขตบางซื่อ กรุงเทพมหานคร 10800',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,

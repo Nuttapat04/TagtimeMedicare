@@ -101,5 +101,20 @@
     	<string>ISO15693</string> <!-- สำหรับแท็กประเภท ISO 15693 -->
     	<string>ISO14443</string> <!-- สำหรับแท็กประเภท MiFare -->
    </array>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    </array>
+   <key>NSUserNotificationUsageDescription</key>
+<string>We need to send you notifications to remind you to take your medication.</string>
+<key>NSLocationAlwaysUsageDescription</key>
+<string>This app requires access to location for notification scheduling.</string>
+<key>NSLocationWhenInUseUsageDescription</key>
+<string>This app needs location access to send notifications.</string>
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+</dict>
 </dict>
 </plist>
