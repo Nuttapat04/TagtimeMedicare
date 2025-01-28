@@ -39,6 +39,8 @@ dependencies:
   nfc_manager: ^3.3.0
   flutter_tts: ^3.8.5
   flutter_timezone: ^1.0.8
+  path_provider: ^2.1.1
+  fl_chart: ^0.70.2
 
 
 

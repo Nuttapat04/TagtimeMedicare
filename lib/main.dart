@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,8 +8,9 @@ import 'package:tagtime_medicare/screens/admin_page.dart';
 import 'package:tagtime_medicare/screens/assign_page.dart';
 import 'package:tagtime_medicare/screens/customer_support_page.dart';
 import 'package:tagtime_medicare/screens/edit_information_page.dart';
-import 'package:tagtime_medicare/screens/medication_service.dart';
-import 'package:tagtime_medicare/screens/notification_detail_page.dart';
+import 'package:tagtime_medicare/screens/home_page.dart';
+import 'package:tagtime_medicare/screens/local_storage.dart';
+import 'package:tagtime_medicare/screens/medicine_detail_page.dart';
 import 'package:tagtime_medicare/screens/notification_service.dart';
 import 'package:tagtime_medicare/screens/profile_page.dart';
 import 'package:tagtime_medicare/screens/welcome.dart';
@@ -20,36 +20,26 @@ import 'package:tagtime_medicare/screens/register_page.dart';
 import 'package:tagtime_medicare/screens/forgetpassword_screen.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
-// 1) ประกาศ navigatorKey เป็น GlobalKey<NavigatorState> เพื่อใช้ใน onDidReceiveNotificationResponse
+// ✅ ใช้ navigatorKey เพื่อควบคุม Navigation
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  runZonedGuarded(() async {
+  try {
     WidgetsFlutterBinding.ensureInitialized();
-    tz.initializeTimeZones();
     await Firebase.initializeApp();
-
-    await setupTimezone();
-    // 2) เรียก initialize service (ซึ่งจะมีการตั้งค่า onDidReceiveNotificationResponse ไว้ด้วย)
+    
+    // ย้ายการตั้งค่า timezone ไปรวมกัน
+    tz.initializeTimeZones();
+    final String currentTimeZone = await FlutterTimezone.getLocalTimezone();
+    print("🌍 Device Timezone: $currentTimeZone");
+    
     await NotificationService().initialize();
-
-    // เพิ่ม error handling สำหรับ NFC (หากใช้งาน)
-    FlutterError.onError = (FlutterErrorDetails details) {
-      print('Flutter Error: ${details.exception}');
-      print('Stack trace: ${details.stack}');
-    };
-
     runApp(const MyApp());
-  }, (error, stack) {
-    print('Caught error: $error');
+  } catch (e, stack) {
+    print('❌ Initialization Error: $e');
     print('Stack trace: $stack');
-  });
+  }
 }
-Future<void> setupTimezone() async {
-  String timezone = await FlutterTimezone.getLocalTimezone();
-  print("🌍 Device Timezone: $timezone");
-}
-
 
 class MyApp extends StatelessWidget {
   const MyApp();
@@ -57,13 +47,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // 3) กำหนด navigatorKey ให้กับ MaterialApp
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Tagtime Medicare',
       theme: ThemeData(
-        fontFamily: 'Poly', // ใช้ฟอนต์ Poly เป็นฟอนต์หลัก
-        primaryColor: const Color(0xFF763355), // กำหนดสีหลักให้เข้า Theme
+        fontFamily: 'Poly',
+        primaryColor: const Color(0xFF763355),
         appBarTheme: const AppBarTheme(
           backgroundColor: Color(0xFFFFF4E0),
           titleTextStyle: TextStyle(
@@ -72,21 +61,12 @@ class MyApp extends StatelessWidget {
             color: Colors.white,
           ),
         ),
-        textTheme: const TextTheme(),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.all(Radius.circular(10)),
-            ),
-          ),
-        ),
       ),
-      home: const AuthWrapper(), // ใช้ AuthWrapper เป็นหน้าเริ่มต้น
+      home: const InitialScreen(),
       routes: {
         '/login': (context) => LoginPage(),
         '/register': (context) => RegisterPage(),
         '/forget-password': (context) => ForgetPasswordScreen(),
-        '/splash': (context) => SplashScreen(),
         '/welcome': (context) => WelcomePage(),
         '/edit-information': (context) => EditInformationPage(),
         '/customer-support': (context) => CustomerSupportPage(),
@@ -94,40 +74,119 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => ProfilePage(),
         '/adminpage': (context) => AdminPage(),
         '/assignpage': (context) => AssignPage(),
-        // 4) หน้าแสดงผลเมื่อคลิก Notification
-        '/notification_detail': (context) => const NotificationDetailPage(
-              payload: '',
-            ),
-      },
+        '/medicine_detail': (context) {
+    print('🛣️ Medicine detail route called');
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    
+    if (args == null) {
+      print('⚠️ No arguments passed to medicine detail route');
+      return const Scaffold(
+        body: Center(child: Text('No medicine data available')),
+      );
+    }
+    
+    print('📋 Medicine detail arguments: $args');
+    return MedicineDetailPage(
+      medicineData: args['medicineData'],
+      rfidUID: args['rfidUID'],
+    );
+  },
+}
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper();
+class InitialScreen extends StatefulWidget {
+  const InitialScreen({Key? key}) : super(key: key);
+
+  @override 
+  State<InitialScreen> createState() => _InitialScreenState();
+}
+
+class _InitialScreenState extends State<InitialScreen> {
+  late StreamSubscription<User?> _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkStoredUser();
+  }
+
+  Future<void> _checkStoredUser() async {
+    try {
+      final storedUserId = await LocalStorage.getData('user_id');
+      
+      if (storedUserId != null) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          print('✅ Found stored user: ${user.uid}');
+          _handleAuth();
+        } else {
+          print('❌ No Firebase user found');
+          _navigateToWelcome();
+        }
+      } else {
+        print('❌ No stored user found');
+        _navigateToWelcome();
+      }
+    } catch (e) {
+      print('❌ Error checking stored user: $e');
+      _navigateToWelcome();
+    }
+  }
+
+  void _handleAuth() {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen(
+      (User? user) async {
+        if (user != null) {
+          print('✅ User logged in: ${user.uid}');
+          await LocalStorage.saveData('user_id', user.uid);
+          NotificationService.instance.listenToMedicationChanges(user.uid);
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => HomePage()),
+            );
+          }
+        } else {
+          print('👤 No user logged in');
+          await LocalStorage.clearAll();
+          if (mounted) {
+            _navigateToWelcome();
+          }
+        }
+      },
+      onError: (error) {
+        print('❌ Auth error: $error');
+        _navigateToWelcome();
+      },
+    );
+  }
+
+  void _navigateToWelcome() {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context, 
+        MaterialPageRoute(builder: (context) => WelcomePage()),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSubscription.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Color(0xFFFFF4E0),
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-
-        if (snapshot.hasData) {
-          // ✅ ถ้าผู้ใช้ล็อกอิน ให้เริ่มฟังการเปลี่ยนแปลงของยา
-          final userId = snapshot.data!.uid;
-          MedicationService().listenToMedicationChanges(userId); // ✅ เรียกฟังก์ชัน
-
-          return SplashScreen();
-        } else {
-          return WelcomePage();
-        }
-      },
+    return Container(
+      color: const Color(0xFFFFF4E0),
+      child: const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFC76355)),
+        ),
+      ),
     );
   }
 }

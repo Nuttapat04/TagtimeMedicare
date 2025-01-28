@@ -21,11 +21,12 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
   bool isSpeaking = false;
 
   @override
-  void initState() {
-    super.initState();
-    initTTS();
-  }
-
+void initState() {
+  super.initState();
+  print('🏥 MedicineDetailPage initialized');
+  print('🏥 Medicine Data: ${widget.medicineData}');
+  print('🏥 RFID UID: ${widget.rfidUID}');
+}
   Future<void> initTTS() async {
     await flutterTts.setLanguage("th-TH");
     await flutterTts.setSpeechRate(0.5);

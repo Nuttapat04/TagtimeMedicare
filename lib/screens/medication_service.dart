@@ -1,4 +1,9 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:tagtime_medicare/main.dart';
+import 'package:tagtime_medicare/screens/medicine_detail_page.dart';
 import 'package:tagtime_medicare/screens/notification_service.dart';
 
 class MedicationService {
@@ -51,12 +56,16 @@ class MedicationService {
 
         try {
           await NotificationService().scheduleNotification(
-            id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
-            title: '💊 Medication Reminder',
-            body: 'Time to take $medicationName.',
-            scheduledDate: adjustedDate,
-            payload: medicationName,
-          );
+  id: DateTime.now().millisecondsSinceEpoch.remainder(100000),
+  title: '💊 Medication Reminder',
+  body: 'Time to take $medicationName',
+  scheduledDate: adjustedDate,
+  payload: json.encode({
+    'M_name': medicationName,
+    'RFID_tag': data['RFID_tag'] ?? 'N/A',  // ใช้ข้อมูลจาก data แทน rfidUID
+    'user_id': userId,
+  }),
+);
           print('✅ Notification scheduled for $medicationName at $adjustedDate');
         } catch (e) {
           print('❌ Error scheduling notification for $medicationName: $e');
@@ -69,26 +78,60 @@ class MedicationService {
   // ✅ ฟังก์ชันสำหรับฟังการเปลี่ยนแปลงของ Firebase และอัปเดต Notification
   void listenToMedicationChanges(String userId) {
   print("👀 Listening for medication changes for userId: $userId...");
-  
-  firestore
+
+  FirebaseFirestore.instance
       .collection('Medications')
       .where('user_id', isEqualTo: userId)
       .snapshots()
-      .listen((QuerySnapshot snapshot) async {
-    print("🔄 Medication data changed in Firestore! Updating notifications...");
+      .listen((snapshot) async {
+    final now = DateTime.now();
 
-    // Debug Log: แสดงข้อมูลที่อัปเดต
     for (var doc in snapshot.docs) {
-      print("📌 Updated Medication: ${doc.id}");
-      print("   🏷️ Name: ${doc['M_name']}");
-      print("   ⏰ Notification Times: ${doc['Notification_times']}");
-      print("   📆 Start Date: ${(doc['Start_date'] as Timestamp).toDate()}");
-      print("   📆 End Date: ${(doc['End_date'] as Timestamp).toDate()}");
-    }
+      final data = doc.data();
+      final medicationName = data['M_name'] ?? 'Unknown';
+      final notificationTimes = List<String>.from(data['Notification_times'] ?? []);
+      final startDate = (data['Start_date'] as Timestamp).toDate();
+      final endDate = (data['End_date'] as Timestamp).toDate();
+      final rfidUID = data['rfidUID'] ?? 'N/A';
 
-    await NotificationService().cancelAllNotifications(); // ลบแจ้งเตือนเก่าทั้งหมด
-    await fetchAndScheduleNotifications(userId); // ตั้งค่าการแจ้งเตือนใหม่
-    print("✅ Notifications updated successfully!");
+      // ✅ ตรวจสอบว่าอยู่ในช่วงวันที่กำหนด
+      if (now.isBefore(startDate) || now.isAfter(endDate)) {
+        continue;
+      }
+
+      // ✅ เช็คเวลาปัจจุบันกับ notificationTimes
+      for (String time in notificationTimes) {
+        final hour = int.parse(time.split(':')[0]);
+        final minute = int.parse(time.split(':')[1]);
+
+        final DateTime scheduledTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          hour,
+          minute,
+        );
+
+        // ✅ เช็คว่าถึงเวลายาแล้ว (±1 นาที)
+        if (scheduledTime.isAfter(now.subtract(const Duration(minutes: 1))) &&
+            scheduledTime.isBefore(now.add(const Duration(minutes: 1)))) {
+          print("🔔 Time to take $medicationName!");
+
+          // ✅ Navigate to MedicineDetailPage
+          Navigator.push(
+            navigatorKey.currentState!.context,
+            MaterialPageRoute(
+              builder: (context) => MedicineDetailPage(
+                medicineData: data,
+                rfidUID: rfidUID,
+              ),
+            ),
+          );
+
+          break;
+        }
+      }
+    }
   });
 }
 

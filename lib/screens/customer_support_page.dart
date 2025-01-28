@@ -45,17 +45,17 @@ class CustomerSupportPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton(
-                onPressed: () async {
-                  await NotificationService().testImmediateNotification();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("✅ Test Notification Sent!")),
-                  );
-                },
-                child: const Text("📢 Test Notification"),
-              ),
-            ),
+            //Center(
+              //child: ElevatedButton(
+                //onPressed: () async {
+                  //await NotificationService().testImmediateNotification();
+                  //ScaffoldMessenger.of(context).showSnackBar(
+                    //const SnackBar(content: Text("✅ Test Notification Sent!")),
+                  //);
+                //},
+                //child: const Text("📢 Test Notification"),
+              //),
+            //),
           ],
         ),
       ),
