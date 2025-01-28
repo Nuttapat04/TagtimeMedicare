@@ -21,12 +21,14 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
   bool isSpeaking = false;
 
   @override
-void initState() {
-  super.initState();
-  print('🏥 MedicineDetailPage initialized');
-  print('🏥 Medicine Data: ${widget.medicineData}');
-  print('🏥 RFID UID: ${widget.rfidUID}');
-}
+  void initState() {
+    super.initState();
+    print('🏥 MedicineDetailPage initialized');
+    print('🏥 Medicine Data: ${widget.medicineData}');
+    print('🏥 RFID UID: ${widget.rfidUID}');
+    initTTS();
+  }
+
   Future<void> initTTS() async {
     await flutterTts.setLanguage("th-TH");
     await flutterTts.setSpeechRate(0.5);
@@ -41,12 +43,12 @@ void initState() {
   }
 
   String _getTextToRead() {
-  final name = widget.medicineData['M_name'] ?? 'ไม่ระบุ';
-  final properties = widget.medicineData['Properties'] ?? 'ไม่ระบุ';
-  final frequency = widget.medicineData['Frequency'] ?? 'ไม่ระบุ';
+    final name = widget.medicineData['M_name'] ?? 'ไม่ระบุ';
+    final properties = widget.medicineData['Properties'] ?? 'ไม่ระบุ';
+    final frequency = widget.medicineData['Frequency'] ?? 'ไม่ระบุ';
 
-  return 'ชื่อยา $name. วิธีการใช้ยา $properties. ความถี่ในการทานยา $frequency';
-}
+    return 'ชื่อยา $name. วิธีการใช้ยา $properties. ความถี่ในการทานยา $frequency';
+  }
 
   Future<void> speak() async {
     if (isSpeaking) {
