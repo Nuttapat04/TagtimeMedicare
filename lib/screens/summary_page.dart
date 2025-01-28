@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class SummaryPage extends StatefulWidget {
   final String userId;
@@ -14,6 +15,7 @@ class SummaryPage extends StatefulWidget {
 class _SummaryPageState extends State<SummaryPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  int touchedIndex = -1;
 
   @override
   void initState() {
@@ -286,17 +288,129 @@ Future<void> _refreshData() async {
   setState(() {});
 }
 
+/// ✅ **สร้าง Widget รวมกราฟ**  
   Widget _buildSummaryPage() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Text(
-          'รอเชื่อม device จริงก่อน, ยังทำไม่ได้',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-              fontSize: 24,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        children: [
+          _buildTitle("Daily Intake (Last 7 Days)"),
+          const SizedBox(height: 10),
+          SizedBox(height: 200, child: _buildAnimatedBarChart()),
+          const SizedBox(height: 30),
+
+          _buildTitle("Medication Type Distribution"),
+          const SizedBox(height: 10),
+          Expanded(child: _buildInteractivePieChart()),
+        ],
+      ),
+    );
+  }
+
+  /// ✅ **Title Widget**
+  Widget _buildTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFFC76355),
+      ),
+    );
+  }
+
+  /// ✅ **Bar Chart (กราฟแท่งแบบ Interactive & Glow)**
+  Widget _buildAnimatedBarChart() {
+    List<BarChartGroupData> barGroups = List.generate(7, (index) {
+      double value = [2, 4, 6, 8, 3, 7, 5][index].toDouble();
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: value,
+            gradient: LinearGradient(
+              colors: touchedIndex == index
+                  ? [Colors.deepOrange, Colors.redAccent]
+                  : [const Color(0xFFC76355), const Color(0xFFFFA07A)],
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+            ),
+            width: touchedIndex == index ? 24 : 16, // 🟠 ขยายขนาดเมื่อกด
+            borderRadius: BorderRadius.circular(8),
+            backDrawRodData: BackgroundBarChartRodData(
+              show: true,
+              toY: 10,
+              color: Colors.grey.withOpacity(0.2),
+            ),
+          ),
+        ],
+        showingTooltipIndicators: touchedIndex == index ? [0] : [],
+      );
+    });
+
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        barGroups: barGroups,
+        barTouchData: BarTouchData(
+          touchCallback: (event, response) {
+            setState(() {
+              touchedIndex = response?.spot?.touchedBarGroupIndex ?? -1;
+            });
+          },
+        ),
+        titlesData: FlTitlesData(
+          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                List<String> days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+                return Text(days[value.toInt()], style: const TextStyle(fontSize: 12));
+              },
+            ),
+          ),
+        ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(show: false),
+      ),
+    );
+  }
+
+  /// ✅ **Pie Chart (กราฟวงกลมแบบ Interactive)**
+  Widget _buildInteractivePieChart() {
+    return PieChart(
+      PieChartData(
+        sections: List.generate(4, (index) {
+          List<Color> colors = [
+            const Color(0xFFC76355),
+            const Color(0xFFFFA07A),
+            const Color(0xFFFFD700),
+            const Color(0xFF69C8FF),
+          ];
+          List<String> labels = ["Painkillers", "Vitamins", "Antibiotics", "Others"];
+          List<double> values = [40, 30, 20, 10];
+
+          return PieChartSectionData(
+            value: values[index],
+            color: touchedIndex == index ? colors[index].withOpacity(0.6) : colors[index],
+            title: labels[index],
+            radius: touchedIndex == index ? 80 : 70,
+            titleStyle: const TextStyle(
+              fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFC76355)),
+              color: Colors.white,
+            ),
+          );
+        }),
+        sectionsSpace: 4,
+        centerSpaceRadius: 40,
+        pieTouchData: PieTouchData(
+          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+            setState(() {
+              touchedIndex = pieTouchResponse?.touchedSection?.touchedSectionIndex ?? -1;
+            });
+          },
         ),
       ),
     );
