@@ -6,6 +6,7 @@ import 'package:tagtime_medicare/screens/history_page.dart';
 import 'package:tagtime_medicare/screens/profile_page.dart'; 
 import 'package:tagtime_medicare/screens/RFID_screen.dart';
 import 'package:tagtime_medicare/screens/summary_page.dart';
+import 'package:tagtime_medicare/screens/medication_service.dart'; // Import MedicationService
 
 class HomePage extends StatefulWidget {
   @override
@@ -15,13 +16,13 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   String firstName = '';
-  String userId = '';
+  String userId = ''; // User ID ของผู้ใช้ปัจจุบัน
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchUserData();
+    fetchUserData(); // ดึงข้อมูลผู้ใช้
   }
 
   Future<void> fetchUserData() async {
@@ -37,13 +38,15 @@ class _HomePageState extends State<HomePage> {
         if (userData.exists) {
           setState(() {
             firstName = userData['Name'] ?? 'User';
-            userId = user.uid; // ดึง userId ของผู้ใช้
+            userId = user.uid; // กำหนด userId
             isLoading = false;
           });
+          // เรียก setupNotifications หลังได้ userId
+          setupNotifications();
         } else {
           setState(() {
             firstName = 'Guest';
-            userId = ''; // กรณีที่ไม่มี userId
+            userId = '';
             isLoading = false;
           });
         }
@@ -55,6 +58,17 @@ class _HomePageState extends State<HomePage> {
         userId = '';
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> setupNotifications() async {
+    if (userId.isNotEmpty) {
+      print('Setting up notifications for userId: $userId...');
+      final medicationService = MedicationService();
+      await medicationService.fetchAndScheduleNotifications(userId);
+      print('Notifications have been set up successfully for $userId!');
+    } else {
+      print('No userId available. Skipping notifications setup.');
     }
   }
 

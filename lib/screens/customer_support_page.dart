@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tagtime_medicare/screens/notification_service.dart';
 
 class CustomerSupportPage extends StatelessWidget {
   @override
@@ -26,21 +27,33 @@ class CustomerSupportPage extends StatelessWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Tel. 099-999-9999',
+          children: [
+            const Text(
+              '📞 Tel. 099-999-9999',
               style: TextStyle(
                 fontSize: 18,
                 color: Color(0xFFC76355),
                 fontWeight: FontWeight.bold,
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              'Address: 1518 ถนน ​ประชา​ราษฎร์​1 แขวงวงศ์สว่าง เขตบางซื่อ กรุงเทพมหานคร 10800',
+            const SizedBox(height: 8),
+            const Text(
+              '🏠 Address: 1518 ถนน ​ประชา​ราษฎร์​1 แขวงวงศ์สว่าง เขตบางซื่อ กรุงเทพมหานคร 10800',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Center(
+              child: ElevatedButton(
+                onPressed: () async {
+                  await NotificationService().testImmediateNotification();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("✅ Test Notification Sent!")),
+                  );
+                },
+                child: const Text("📢 Test Notification"),
               ),
             ),
           ],

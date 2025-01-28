@@ -1,5 +1,5 @@
-import Flutter
 import UIKit
+import Flutter
 import FirebaseCore
 import CoreNFC
 import UserNotifications
@@ -14,22 +14,39 @@ import UserNotifications
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // ✅ Initialize Firebase
         FirebaseApp.configure()
         GeneratedPluginRegistrant.register(with: self)
 
-        // ขอ permission สำหรับ notification
-        UNUserNotificationCenter.current().delegate = self
+        // ✅ Configure Notification
+        configureNotification(application)
+
+        // ✅ Setup NFC Method Channel
+        setupNFCMethodChannel()
+
+        return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+
+    // ✅ Configure Notification Permissions
+    private func configureNotification(_ application: UIApplication) {
         let center = UNUserNotificationCenter.current()
+        center.delegate = self // ตั้งค่า Delegate เพื่อให้แสดง Noti แม้อยู่ในแอป
+
+        // ขออนุญาตการแจ้งเตือน
         center.requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if granted {
                 DispatchQueue.main.async {
-                    UIApplication.shared.registerForRemoteNotifications()
+                    application.registerForRemoteNotifications()
                 }
+            } else {
+                print("❌ Notification Permission Denied")
             }
         }
+    }
 
-        // ตั้งค่า MethodChannel สำหรับ NFC
-        let controller = window?.rootViewController as! FlutterViewController
+    // ✅ Setup NFC Method Channel
+    private func setupNFCMethodChannel() {
+        guard let controller = window?.rootViewController as? FlutterViewController else { return }
         let nfcChannel = FlutterMethodChannel(name: "flutter_nfc_reader_writer", binaryMessenger: controller.binaryMessenger)
 
         nfcChannel.setMethodCallHandler { [weak self] call, result in
@@ -45,24 +62,19 @@ import UserNotifications
                 result(FlutterMethodNotImplemented)
             }
         }
-
-        return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
 
-    // แสดง notification แม้แอพจะอยู่ใน foreground
+    // ✅ Display Notification While App is in Foreground
     override func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        if #available(iOS 14.0, *) {
-            completionHandler([[.banner, .sound]])
-        } else {
-            completionHandler([[.alert, .sound]])
-        }
+        print("🔔 Notification received in foreground: \(notification.request.content.body)")
+        completionHandler([.alert, .badge, .sound])
     }
 
-    // จัดการเมื่อกดที่ notification
+    // ✅ Handle Notification Taps
     override func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
@@ -79,7 +91,7 @@ import UserNotifications
         completionHandler()
     }
 
-    // NFC Methods
+    // ✅ NFC Functions
     @available(iOS 13.0, *)
     private func startNfcRead(result: @escaping FlutterResult) {
         guard NFCTagReaderSession.readingAvailable else {
@@ -103,7 +115,7 @@ import UserNotifications
 @available(iOS 13.0, *)
 extension AppDelegate: NFCTagReaderSessionDelegate {
     func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
-        print("NFC Tag Reader Session is now active.")
+        print("✅ NFC Tag Reader Session is now active.")
     }
 
     func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
