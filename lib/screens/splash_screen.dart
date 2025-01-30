@@ -1,37 +1,78 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:tagtime_medicare/screens/home_page.dart';
-import 'package:tagtime_medicare/screens/welcome.dart'; // Import หน้า Welcome
+import 'package:tagtime_medicare/screens/welcome.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+  bool _showLogo = false;
+  bool _showText = false;
+  bool _showVersion = false;
+  double _logoSize = 150;
+
   @override
   void initState() {
     super.initState();
-    _navigateToNext(); // ใช้ _navigateToNext เพื่อตรวจสอบผู้ใช้
+    _startAnimation();
+  }
+
+  void _startAnimation() async {
+    // เริ่มแสดง Logo ด้วย fade in
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) setState(() => _showLogo = true);
+
+    // ทำให้ Logo ขยายขึ้น
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) setState(() => _logoSize = 250);
+
+    // แสดงชื่อแอพ
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) setState(() => _showText = true);
+
+    // แสดงเวอร์ชัน
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (mounted) setState(() => _showVersion = true);
+
+    // รอก่อนไปหน้าถัดไป
+    await Future.delayed(const Duration(seconds: 1));
+    _navigateToNext();
   }
 
   void _navigateToNext() async {
-    await Future.delayed(const Duration(seconds: 3)); // เวลาแสดง Splash Screen
-
     final user = FirebaseAuth.instance.currentUser;
 
     if (mounted) {
       if (user != null) {
-        // ถ้ามีผู้ใช้ล็อกอินอยู่ -> ไปหน้า Home
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomePage()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => HomePage(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
         );
       } else {
-        // ถ้ายังไม่มี -> ไปหน้า Welcome
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => WelcomePage()),
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => WelcomePage(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return FadeTransition(
+                opacity: animation,
+                child: child,
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 800),
+          ),
         );
       }
     }
@@ -40,33 +81,62 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF4E0), // สีพื้นหลัง
+      backgroundColor: const Color(0xFFFFF4E0),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // โลโก้
-            Image.asset(
-              'images/LOGOAYD.png', // ไฟล์โลโก้
-              width: 250,
-              height: 180,
-            ),
-            const SizedBox(height: 20),
-            // ข้อความ
-            const Text(
-              'Tagtime Medicare',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFB35750), // สีข้อความ
+            // Animated Logo
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 800),
+              opacity: _showLogo ? 1.0 : 0.0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                width: _logoSize,
+                height: _logoSize * 0.72, // รักษาอัตราส่วน
+                curve: Curves.easeOutBack,
+                child: Image.asset(
+                  'images/LOGOAYD.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
+            const SizedBox(height: 20),
+            
+            // Animated App Name
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 800),
+              opacity: _showText ? 1.0 : 0.0,
+              child: const Text(
+                'Tagtime Medicare',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFB35750),
+                ),
+              ),
+            ),
+            
             const SizedBox(height: 10),
-            const Text(
-              'Version 1.0',
-              style: TextStyle(
-                fontSize: 16,
-                color: Color(0xFFB35750), // สีข้อความ
+            
+            // Animated Version
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 800),
+              opacity: _showVersion ? 1.0 : 0.0,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 500),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB35750).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                child: const Text(
+                  'Version 1.0',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFFB35750),
+                  ),
+                ),
               ),
             ),
           ],

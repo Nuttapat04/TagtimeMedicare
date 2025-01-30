@@ -7,7 +7,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 
-
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
@@ -21,7 +20,8 @@ class NotificationService {
   Future<void> initialize() async {
     tz.initializeTimeZones();
 
-    const DarwinInitializationSettings iOSSettings = DarwinInitializationSettings(
+    const DarwinInitializationSettings iOSSettings =
+        DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -59,46 +59,61 @@ class NotificationService {
   }
 
   void _handleNotificationClick(String? payload) async {
+    print('🔔 Notification clicked with payload: $payload');
+
     if (payload == null) {
-      print('❌ No payload found in notification.');
+      print('❌ No payload in notification');
+      _showSnackBar('Error: No medication data found');
       return;
     }
 
     try {
       final payloadData = json.decode(payload);
+      print('📦 Decoded payload: $payloadData');
+
+      if (payloadData == null) {
+        print('❌ Invalid payload format');
+        _showSnackBar('Error: Invalid notification data');
+        return;
+      }
+
       final String? rfidUID = payloadData['rfidUID'];
       final String? userId = payloadData['user_id'];
 
-      if (rfidUID != null && userId != null) {
-        print('🔍 Fetching medication data for RFID: $rfidUID');
-
-        final medsSnapshot = await FirebaseFirestore.instance
-            .collection('Medications')
-            .where('RFID_tag', isEqualTo: rfidUID)
-            .where('user_id', isEqualTo: userId)
-            .get();
-
-        if (medsSnapshot.docs.isNotEmpty) {
-          final medicineData = medsSnapshot.docs.first.data();
-          print('✅ Found medicine: $medicineData');
-
-          navigatorKey.currentState?.pushNamed(
-            '/medicine_detail',
-            arguments: {
-              'medicineData': medicineData,
-              'rfidUID': rfidUID,
-            },
-          );
-          print('✅ Navigation completed');
-        } else {
-          print('❌ No medicine found for RFID: $rfidUID');
-          _showSnackBar('No medicine found for this RFID tag');
-        }
-      } else {
-        print('❌ Missing RFID or user_id in payload.');
+      if (rfidUID == null || userId == null) {
+        print('❌ Missing required data in payload');
+        _showSnackBar('Error: Missing medication details');
+        return;
       }
+
+      // ดึงข้อมูลยา
+      final medsSnapshot = await FirebaseFirestore.instance
+          .collection('Medications')
+          .where('RFID_tag', isEqualTo: rfidUID)
+          .where('user_id', isEqualTo: userId)
+          .get();
+
+      print('📄 Found ${medsSnapshot.docs.length} medications');
+
+      if (medsSnapshot.docs.isEmpty) {
+        print('❌ No medication found');
+        _showSnackBar('Error: Medication not found');
+        return;
+      }
+
+      final medicineData = medsSnapshot.docs.first.data();
+      print('✅ Navigating to medicine detail with data: $medicineData');
+
+      navigatorKey.currentState?.pushNamed(
+        '/medicine_detail', // ต้องตรงกับที่กำหนดใน routes
+        arguments: {
+          'medicineData': medicineData,
+          'rfidUID': rfidUID,
+        },
+      );
     } catch (e) {
-      print('❌ Error handling notification response: $e');
+      print('❌ Error handling notification: $e');
+      _showSnackBar('Error: Could not load medication details');
     }
   }
 
