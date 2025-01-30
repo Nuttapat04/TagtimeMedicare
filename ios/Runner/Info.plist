@@ -109,15 +109,13 @@
 <string>This app requires access to location for notification scheduling.</string>
 <key>NSLocationWhenInUseUsageDescription</key>
 <string>This app needs location access to send notifications.</string>
-<key>NSAppTransportSecurity</key>
-<dict>
-    <key>NSAllowsArbitraryLoads</key>
-    <true/>
-</dict>
 <key>CFTimeZone</key>
 <string>Asia/Bangkok</string>
-<key>FirebaseAppDelegateProxyEnabled</key>
+<key>UIStateRestorationEnabled</key>
 <true/>
+
+<key>UIApplicationExitsOnSuspend</key>
+<false/>
 
 </dict>
 </plist>
