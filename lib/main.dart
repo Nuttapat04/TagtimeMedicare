@@ -1,4 +1,3 @@
-// main.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,7 +24,9 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
     tz.initializeTimeZones();
     await Firebase.initializeApp();
-    NotificationService().initialize();
+    
+    // ✅ เรียกใช้งาน NotificationService ก่อนรันแอป
+    await NotificationService().initialize();
 
     FlutterError.onError = (FlutterErrorDetails details) {
       print('Flutter Error: ${details.exception}');
@@ -68,6 +69,30 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: const AuthWrapper(),
+
+      // ✅ กำหนด Route และดัก `arguments`
+      onGenerateRoute: (settings) {
+        if (settings.name == '/medicine_detail') {
+          final args = settings.arguments as Map<String, dynamic>?;
+
+          if (args != null && args.containsKey('rfidUID')) {
+            return MaterialPageRoute(
+              builder: (context) => MedicineDetailPage(
+                medicineData: args['medicineData'] ?? {},
+                rfidUID: args['rfidUID'],
+              ),
+            );
+          } else {
+            print('❌ Missing arguments for /medicine_detail');
+          }
+        }
+
+        // ✅ Default Route
+        return MaterialPageRoute(
+          builder: (context) => WelcomePage(),
+        );
+      },
+
       routes: {
         '/login': (context) => LoginPage(),
         '/register': (context) => RegisterPage(),
@@ -80,23 +105,6 @@ class MyApp extends StatelessWidget {
         '/profile': (context) => ProfilePage(),
         '/adminpage': (context) => AdminPage(),
         '/assignpage': (context) => AssignPage(),
-        '/medicine_detail': (context) {
-          print('🛣️ Medicine detail route called');
-          final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-
-          if (args == null) {
-            print('⚠️ No arguments passed to medicine detail route');
-            return Scaffold(
-              body: Center(child: Text('No medicine data available')),
-            );
-          }
-
-          print('📋 Medicine detail arguments: $args');
-          return MedicineDetailPage(
-            medicineData: args['medicineData'],
-            rfidUID: args['rfidUID'],
-          );
-        },
       },
     );
   }
@@ -121,7 +129,7 @@ class AuthWrapper extends StatelessWidget {
           print('Firebase Auth Error: ${snapshot.error}');
           return Scaffold(
             backgroundColor: Color(0xFFFFF4E0),
-            body: Center(
+            body: const Center(
               child: Text(
                 'เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ใช้',
                 style: TextStyle(color: Colors.red),
