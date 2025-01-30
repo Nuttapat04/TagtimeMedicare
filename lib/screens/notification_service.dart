@@ -1,13 +1,12 @@
-// notification_service.dart
 import 'dart:convert';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tagtime_medicare/main.dart';
-import 'package:tagtime_medicare/screens/medicine_detail_page.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz;
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -22,95 +21,102 @@ class NotificationService {
   Future<void> initialize() async {
     tz.initializeTimeZones();
 
-    const DarwinInitializationSettings iOSSettings =
-        DarwinInitializationSettings(
+    const DarwinInitializationSettings iOSSettings = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
     );
 
     const InitializationSettings initializationSettings =
-        InitializationSettings(
-      iOS: iOSSettings,
-    );
+        InitializationSettings(iOS: iOSSettings);
 
     await flutterLocalNotificationsPlugin.initialize(
       initializationSettings,
-      onDidReceiveNotificationResponse: (response) {
-        print('🔔 onDidReceiveNotificationResponse called');
-        print('Payload: ${response.payload}');
-        _handleNotificationResponse(response);
+      onDidReceiveNotificationResponse: (response) async {
+        print('🔔 Notification clicked!');
+        _handleNotificationClick(response.payload);
       },
     );
 
-    print('✅ Notification service initialized');
+    FirebaseMessaging.instance.getInitialMessage().then((message) {
+      if (message != null) {
+        print('📩 App opened from terminated state via notification!');
+        _handleNotificationClick(jsonEncode(message.data));
+      }
+    });
+
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      print('📩 Notification clicked while app was open!');
+      _handleNotificationClick(jsonEncode(message.data));
+    });
+
+    FirebaseMessaging.onMessage.listen((message) {
+      print('🔔 Notification received while app is in foreground');
+      _showLocalNotification(message);
+    });
+
+    print('✅ NotificationService initialized');
   }
 
-  Future<void> _handleNotificationResponse(NotificationResponse response) async {
-    print('🔔 Notification tapped! Payload: ${response.payload}');
+  void _handleNotificationClick(String? payload) async {
+    if (payload == null) {
+      print('❌ No payload found in notification.');
+      return;
+    }
 
-    if (response.payload != null) {
-      try {
-        final currentUser = FirebaseAuth.instance.currentUser;
-        if (currentUser == null) {
-          print('❌ No Firebase user logged in');
-          _navigateToWelcome();
-          return;
-        }
+    try {
+      final payloadData = json.decode(payload);
+      final String? rfidUID = payloadData['rfidUID'];
+      final String? userId = payloadData['user_id'];
 
-        final payloadMap = json.decode(response.payload!);
-        final medicineName = payloadMap['M_name'];
-        final rfidUID = payloadMap['RFID_tag'];
+      if (rfidUID != null && userId != null) {
+        print('🔍 Fetching medication data for RFID: $rfidUID');
 
-        final querySnapshot = await FirebaseFirestore.instance
+        final medsSnapshot = await FirebaseFirestore.instance
             .collection('Medications')
-            .where('M_name', isEqualTo: medicineName)
-            .where('user_id', isEqualTo: currentUser.uid)
-            .limit(1)
+            .where('RFID_tag', isEqualTo: rfidUID)
+            .where('user_id', isEqualTo: userId)
             .get();
 
-        if (querySnapshot.docs.isNotEmpty) {
-          final medicineData = querySnapshot.docs.first.data();
+        if (medsSnapshot.docs.isNotEmpty) {
+          final medicineData = medsSnapshot.docs.first.data();
+          print('✅ Found medicine: $medicineData');
 
-          if (medicineData['user_id'] != currentUser.uid) {
-            print('❌ Medicine belongs to different user');
-            return;
-          }
-
-          print('✅ Found medicine data for current user');
-          await Future.delayed(const Duration(milliseconds: 500));
-
-          if (navigatorKey.currentState != null) {
-            print('🚀 Navigating to medicine detail page...');
-            navigatorKey.currentState!.pushNamed(
-              '/medicine_detail',
-              arguments: {
-                'medicineData': medicineData,
-                'rfidUID': rfidUID,
-              },
-            );
-            print('✅ Navigation completed');
-          } else {
-            print('❌ Navigator is not available');
-          }
+          navigatorKey.currentState?.pushNamed(
+            '/medicine_detail',
+            arguments: {
+              'medicineData': medicineData,
+              'rfidUID': rfidUID,
+            },
+          );
+          print('✅ Navigation completed');
         } else {
-          print('❌ No medicine found for current user');
+          print('❌ No medicine found for RFID: $rfidUID');
+          _showSnackBar('No medicine found for this RFID tag');
         }
-      } catch (e, stack) {
-        print('❌ Error handling notification: $e');
-        print('Stack trace: $stack');
-        _navigateToWelcome();
+      } else {
+        print('❌ Missing RFID or user_id in payload.');
       }
-    } else {
-      print('⚠️ No payload in notification');
+    } catch (e) {
+      print('❌ Error handling notification response: $e');
     }
   }
 
-  void _navigateToWelcome() {
-    if (navigatorKey.currentState != null) {
-      navigatorKey.currentState!.pushNamedAndRemoveUntil(
-        '/welcome',
-        (route) => false,
+  void _showLocalNotification(RemoteMessage message) async {
+    RemoteNotification? notification = message.notification;
+    if (notification != null) {
+      flutterLocalNotificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        const NotificationDetails(
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+        payload: jsonEncode(message.data),
       );
     }
   }
@@ -120,22 +126,20 @@ class NotificationService {
     required String title,
     required String body,
     required DateTime scheduledDate,
-    required String payload,
+    required String rfidUID,
+    required String userId,
   }) async {
     try {
-      if (scheduledDate.isBefore(DateTime.now())) {
-        print('⚠️ Cannot schedule notification in the past. Scheduled Date: $scheduledDate');
-        return;
-      }
-
-      final decodedPayload = json.decode(payload);
-      if (!decodedPayload.containsKey('M_name') ||
-          !decodedPayload.containsKey('RFID_tag')) {
-        throw FormatException('Invalid payload format');
-      }
+      print('🔔 Scheduling notification for RFID: $rfidUID');
 
       final tz.Location localTZ = tz.getLocation('Asia/Bangkok');
-      final tz.TZDateTime scheduledTime = tz.TZDateTime.from(scheduledDate, localTZ);
+      final tz.TZDateTime scheduledTime =
+          tz.TZDateTime.from(scheduledDate, localTZ);
+
+      final payload = json.encode({
+        'rfidUID': rfidUID,
+        'user_id': userId,
+      });
 
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
@@ -159,13 +163,11 @@ class NotificationService {
       );
     } catch (e) {
       print('❌ Error scheduling notification: $e');
-      print('Invalid payload: $payload');
-      return;
     }
   }
 
   void listenToMedicationChanges(String userId) {
-    print('🔍 Starting medication changes listener for User ID: $userId');
+    print('🔍 Listening for medication changes for User ID: $userId');
 
     FirebaseFirestore.instance
         .collection('Medications')
@@ -173,21 +175,7 @@ class NotificationService {
         .snapshots()
         .listen((snapshot) async {
       print('🚨 FIREBASE CHANGE DETECTED 🚨');
-      print('📊 Total documents changed: ${snapshot.docChanges.length}');
-
-      for (var change in snapshot.docChanges) {
-        switch (change.type) {
-          case DocumentChangeType.added:
-            print('➕ Document ADDED: ${change.doc.id}');
-            break;
-          case DocumentChangeType.modified:
-            print('🔄 Document MODIFIED: ${change.doc.id}');
-            break;
-          case DocumentChangeType.removed:
-            print('➖ Document REMOVED: ${change.doc.id}');
-            break;
-        }
-      }
+      print('📊 Total documents changed: ${snapshot.docs.length}');
 
       await cancelAllNotifications();
       print('🧹 Cancelled all previous notifications');
@@ -195,7 +183,8 @@ class NotificationService {
       for (var doc in snapshot.docs) {
         final data = doc.data();
         final medicationName = data['M_name'] ?? 'Unknown';
-        final notificationTimes = List<String>.from(data['Notification_times'] ?? []);
+        final notificationTimes =
+            List<String>.from(data['Notification_times'] ?? []);
         final startDate = (data['Start_date'] as Timestamp).toDate();
         final endDate = (data['End_date'] as Timestamp).toDate();
         final now = DateTime.now();
@@ -217,41 +206,23 @@ class NotificationService {
               continue;
             }
 
-            final DateTime scheduledDate = DateTime(
-              now.year,
-              now.month,
-              now.day,
-              hour,
-              minute,
-            );
+            final DateTime scheduledDate =
+                DateTime(now.year, now.month, now.day, hour, minute);
 
             final adjustedDate = scheduledDate.isBefore(now)
                 ? scheduledDate.add(const Duration(days: 1))
                 : scheduledDate;
 
-            final payload = json.encode({
-              'M_name': medicationName,
-              'RFID_tag': rfidUID,
-              'user_id': userId,
-            });
-
-            final notificationId = (medicationName + time).hashCode.abs() % 100000;
-
-            print('📅 Scheduling notification:');
-            print('🆔 Notification ID: $notificationId');
-            print('💊 Medication: $medicationName');
-            print('⏰ Scheduled Time: $adjustedDate');
-
             await scheduleNotification(
-              id: notificationId,
+              id: (medicationName + time).hashCode.abs() % 100000,
               title: '💊 Medication Reminder',
               body: 'Time to take $medicationName',
               scheduledDate: adjustedDate,
-              payload: payload,
+              rfidUID: rfidUID,
+              userId: userId,
             );
           } catch (e) {
             print('❌ Error scheduling notification for $medicationName: $e');
-            continue;
           }
         }
       }
@@ -266,6 +237,18 @@ class NotificationService {
       await flutterLocalNotificationsPlugin.cancelAll();
     } catch (e) {
       print('❌ Error cancelling all notifications: $e');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    final context = navigatorKey.currentContext;
+    if (context != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
