@@ -198,14 +198,7 @@ class MyApp extends StatelessWidget {
             '/profile': (context) => ProfilePage(),
             '/adminpage': (context) => AdminPage(),
             '/assignpage': (context) => AssignPage(),
-            '/medicine_detail': (context) {
-              final args = ModalRoute.of(context)!.settings.arguments
-                  as Map<String, dynamic>;
-              return MedicineDetailPage(
-                medicineData: args['medicineData'],
-                rfidUID: args['rfidUID'],
-              );
-            },
+            
           },
         );
       },

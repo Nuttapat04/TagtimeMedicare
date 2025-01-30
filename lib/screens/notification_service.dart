@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tagtime_medicare/main.dart';
+import 'package:tagtime_medicare/screens/SimulatedMedicineListPage.dart';
+import 'package:tagtime_medicare/screens/medicine_detail_page.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -104,12 +106,13 @@ class NotificationService {
       final medicineData = medsSnapshot.docs.first.data();
       print('✅ Navigating to medicine detail with data: $medicineData');
 
-      navigatorKey.currentState?.pushNamed(
-        '/medicine_detail', // ต้องตรงกับที่กำหนดใน routes
-        arguments: {
-          'medicineData': medicineData,
-          'rfidUID': rfidUID,
-        },
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (context) => MedicineDetailPage(
+            medicineData: medicineData,
+            rfidUID: rfidUID,
+          ),
+        ),
       );
     } catch (e) {
       print('❌ Error handling notification: $e');
