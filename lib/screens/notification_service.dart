@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tagtime_medicare/main.dart';
-import 'package:tagtime_medicare/screens/SimulatedMedicineListPage.dart';
 import 'package:tagtime_medicare/screens/medicine_detail_page.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:firebase_messaging/firebase_messaging.dart';

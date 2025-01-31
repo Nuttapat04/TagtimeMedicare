@@ -38,7 +38,7 @@ class CustomerSupportPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              '🏠 Address: 1518 ถนน ​ประชา​ราษฎร์​1 แขวงวงศ์สว่าง เขตบางซื่อ กรุงเทพมหานคร 10800',
+              '🏠 Address: 1518 Pracharat 1 Road,Wongsawang, Bangsue, Bangkok 10800 Thailand.',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
