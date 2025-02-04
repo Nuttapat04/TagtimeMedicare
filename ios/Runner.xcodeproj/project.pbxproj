@@ -77,6 +77,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				B439FEA642AC0C8EB658CD3F /* Pods_Runner.framework in Frameworks */,
+                                // เพิ่มบรรทัดนี้
+				BE9018A62D2FBF0500035EB1 /* AdSupport.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,12 +93,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		331C8082294A63A400263BE5 /* RunnerTests */ = {
+		8265F3A36198F94F9230FDC8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				331C807B294A618700263BE5 /* RunnerTests.swift */,
+				B427B41DAAF60CF75CA533F6 /* Pods_Runner.framework */,
+				AA33FDA7456E832C71542537 /* Pods_RunnerTests.framework */,
+                                // เพิ่มบรรทัดนี้
+                                BE9018A72D2FBF0500035EB2 /* AdSupport.framework */,
 			);
-			path = RunnerTests;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		3FEEC4242C1AB37F1DFBD620 /* Pods */ = {

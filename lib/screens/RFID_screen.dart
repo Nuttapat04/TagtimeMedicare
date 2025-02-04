@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:tagtime_medicare/screens/SimulatedMedicineListPage.dart';
 import 'package:tagtime_medicare/screens/assign_page.dart';
 import 'package:tagtime_medicare/screens/medicine_detail_page.dart';
 
@@ -332,6 +333,31 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                 ),
               ),
           ],
+
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SimulatedMedicineListPage(),
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blueAccent,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+              ),
+              child: const Text(
+                "Use Without RFID",
+                style: TextStyle(fontSize: 20, color: Colors.white),
+              ),
+            ),
+          ),
 
           // ปุ่ม Assign
           Padding(

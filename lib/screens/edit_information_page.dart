@@ -16,6 +16,7 @@ class _EditInformationPageState extends State<EditInformationPage> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController dateController = TextEditingController();
+  final TextEditingController symptomsController = TextEditingController();
 
   String email = '';
   bool isLoading = true;
@@ -42,6 +43,8 @@ class _EditInformationPageState extends State<EditInformationPage> {
           nameController.text = userData['Name'] ?? '';
           surnameController.text = userData['Surname'] ?? '';
           phoneController.text = userData['Phone'] ?? '';
+          symptomsController.text =
+              userData['symptoms'] ?? ''; // เพิ่มบรรทัดนี้
           email = user.email ?? '';
           loginType = userData['loginType'] ?? '';
 
@@ -52,7 +55,7 @@ class _EditInformationPageState extends State<EditInformationPage> {
               dateController.text = formatDate(selectedDate!);
             }
           }
-          
+
           isLoading = false;
         });
       }
@@ -94,6 +97,7 @@ class _EditInformationPageState extends State<EditInformationPage> {
             'Name': nameController.text.trim(),
             'Surname': surnameController.text.trim(),
             'Phone': phoneController.text.trim(),
+            'symptoms': symptomsController.text.trim(), // เพิ่มบรรทัดนี้
           };
 
           // Only update Date_of_Birth if a date was selected
@@ -114,7 +118,7 @@ class _EditInformationPageState extends State<EditInformationPage> {
             const SnackBar(content: Text('Information updated successfully!')),
           );
 
-          Navigator.pop(context); // Return to previous screen
+          Navigator.pop(context);
         }
       } catch (e) {
         print('Error updating user data: $e');
@@ -145,7 +149,8 @@ class _EditInformationPageState extends State<EditInformationPage> {
       ),
       backgroundColor: const Color(0xFFFFF4E0),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFFC76355)))
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFFC76355)))
           : Padding(
               padding: const EdgeInsets.all(16.0),
               child: Form(
@@ -219,7 +224,9 @@ class _EditInformationPageState extends State<EditInformationPage> {
                       ),
                       obscureText: true,
                       validator: (value) {
-                        if (value != null && value.isNotEmpty && value.length < 6) {
+                        if (value != null &&
+                            value.isNotEmpty &&
+                            value.length < 6) {
                           return 'Password must be at least 6 characters';
                         }
                         return null;
@@ -249,7 +256,8 @@ class _EditInformationPageState extends State<EditInformationPage> {
                           onPressed: () => _selectDate(context),
                         ),
                       ),
-                      readOnly: true, // Always readonly since we use date picker
+                      readOnly:
+                          true, // Always readonly since we use date picker
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please select your date of birth';
@@ -257,6 +265,53 @@ class _EditInformationPageState extends State<EditInformationPage> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: Colors.grey.shade400),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(
+                              'อาการเจ็บป่วย (ไม่บังคับ)',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFC76355),
+                              ),
+                            ),
+                          ),
+                          TextFormField(
+                            controller: symptomsController,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText: 'กรุณาระบุอาการเจ็บป่วยของท่าน (ถ้ามี)',
+                              contentPadding: EdgeInsets.all(12),
+                              border: InputBorder.none,
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 12, bottom: 8),
+                            child: Text(
+                              'ข้อมูลนี้จะช่วยให้เราสามารถให้บริการที่เหมาะสมกับท่านได้ดียิ่งขึ้น',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
                     const SizedBox(height: 32),
                     ElevatedButton(
                       onPressed: updateUserData,

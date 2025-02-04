@@ -81,79 +81,80 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> signInWithGoogle() async {
-    setState(() {
-      isLoading = true;
-    });
+  setState(() {
+    isLoading = true;
+  });
 
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+  try {
+    final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-      if (googleUser == null) {
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-      final User? user = userCredential.user;
-
-      if (user != null) {
-        final docRef = _firestore.collection('Users').doc(user.uid);
-        final docSnapshot = await docRef.get();
-
-        if (!docSnapshot.exists) {
-          var names = user.displayName?.split(' ') ?? [''];
-          var firstName = names.first;
-          var surname = names.length > 1 ? names.sublist(1).join(' ') : '';
-
-          await docRef.set({
-            'Email': user.email ?? '',
-            'Name': firstName,
-            'Surname': surname,
-            'Username': (user.email?.split('@')[0] ?? '').toLowerCase(),
-            'Phone': user.phoneNumber ?? '',
-            'Role': 'user',
-            'Date_of_Birth': null,
-            'Created_at': FieldValue.serverTimestamp(),
-            'loginType': 'google',
-            'photoURL': user.photoURL ?? '',
-            'Last_login': FieldValue.serverTimestamp(),
-          });
-
-          Navigator.pushReplacementNamed(context, '/splash');
-        } else {
-          await docRef.update({
-            'Last_login': FieldValue.serverTimestamp(),
-            'photoURL': user.photoURL ?? '',
-          });
-
-          await handleRoleBasedNavigation(user.uid);
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Welcome, ${user.displayName ?? 'User'}!')),
-        );
-      }
-    } catch (e) {
-      print('Error during Google sign in: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to sign in with Google')),
-      );
-    } finally {
+    if (googleUser == null) {
       setState(() {
         isLoading = false;
       });
+      return;
     }
+
+    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final UserCredential userCredential = await _auth.signInWithCredential(credential);
+    final User? user = userCredential.user;
+
+    if (user != null) {
+      final docRef = _firestore.collection('Users').doc(user.uid);
+      final docSnapshot = await docRef.get();
+
+      if (!docSnapshot.exists) {
+        var names = user.displayName?.split(' ') ?? [''];
+        var firstName = names.first;
+        var surname = names.length > 1 ? names.sublist(1).join(' ') : '';
+
+        await docRef.set({
+          'Email': user.email ?? '',
+          'Name': firstName,
+          'Surname': surname,
+          'Username': (user.email?.split('@')[0] ?? '').toLowerCase(),
+          'Phone': user.phoneNumber ?? '',
+          'Role': 'user',
+          'Date_of_Birth': null,
+          'Created_at': FieldValue.serverTimestamp(),
+          'loginType': 'google',
+          'photoURL': user.photoURL ?? '',
+          'Last_login': FieldValue.serverTimestamp(),
+          'symptoms': '', // เพิ่ม field symptoms
+          'isActive': true,
+          'deviceTokens': [],
+        });
+
+        Navigator.pushReplacementNamed(context, '/splash');
+      } else {
+        await docRef.update({
+          'Last_login': FieldValue.serverTimestamp(),
+          'photoURL': user.photoURL ?? '',
+        });
+
+        await handleRoleBasedNavigation(user.uid);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Welcome, ${user.displayName}!')),
+      );
+    }
+  } catch (e) {
+    print('Error during Google sign in: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to sign in with Google')),
+    );
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {

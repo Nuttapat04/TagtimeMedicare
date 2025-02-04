@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tagtime_medicare/main.dart';
+import 'package:tagtime_medicare/screens/medicine_detail_page.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
-
+import 'package:flutter/scheduler.dart';
+import 'dart:async';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -21,7 +23,8 @@ class NotificationService {
   Future<void> initialize() async {
     tz.initializeTimeZones();
 
-    const DarwinInitializationSettings iOSSettings = DarwinInitializationSettings(
+    const DarwinInitializationSettings iOSSettings =
+        DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -59,46 +62,62 @@ class NotificationService {
   }
 
   void _handleNotificationClick(String? payload) async {
+    print('🔔 Notification clicked with payload: $payload');
+
     if (payload == null) {
-      print('❌ No payload found in notification.');
+      print('❌ No payload in notification');
+      _showSnackBar('Error: No medication data found');
       return;
     }
 
     try {
       final payloadData = json.decode(payload);
+      print('📦 Decoded payload: $payloadData');
+
+      if (payloadData == null) {
+        print('❌ Invalid payload format');
+        _showSnackBar('Error: Invalid notification data');
+        return;
+      }
+
       final String? rfidUID = payloadData['rfidUID'];
       final String? userId = payloadData['user_id'];
 
-      if (rfidUID != null && userId != null) {
-        print('🔍 Fetching medication data for RFID: $rfidUID');
-
-        final medsSnapshot = await FirebaseFirestore.instance
-            .collection('Medications')
-            .where('RFID_tag', isEqualTo: rfidUID)
-            .where('user_id', isEqualTo: userId)
-            .get();
-
-        if (medsSnapshot.docs.isNotEmpty) {
-          final medicineData = medsSnapshot.docs.first.data();
-          print('✅ Found medicine: $medicineData');
-
-          navigatorKey.currentState?.pushNamed(
-            '/medicine_detail',
-            arguments: {
-              'medicineData': medicineData,
-              'rfidUID': rfidUID,
-            },
-          );
-          print('✅ Navigation completed');
-        } else {
-          print('❌ No medicine found for RFID: $rfidUID');
-          _showSnackBar('No medicine found for this RFID tag');
-        }
-      } else {
-        print('❌ Missing RFID or user_id in payload.');
+      if (rfidUID == null || userId == null) {
+        print('❌ Missing required data in payload');
+        _showSnackBar('Error: Missing medication details');
+        return;
       }
+
+      // ดึงข้อมูลยา
+      final medsSnapshot = await FirebaseFirestore.instance
+          .collection('Medications')
+          .where('RFID_tag', isEqualTo: rfidUID)
+          .where('user_id', isEqualTo: userId)
+          .get();
+
+      print('📄 Found ${medsSnapshot.docs.length} medications');
+
+      if (medsSnapshot.docs.isEmpty) {
+        print('❌ No medication found');
+        _showSnackBar('Error: Medication not found');
+        return;
+      }
+
+      final medicineData = medsSnapshot.docs.first.data();
+      print('✅ Navigating to medicine detail with data: $medicineData');
+
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (context) => MedicineDetailPage(
+            medicineData: medicineData,
+            rfidUID: rfidUID,
+          ),
+        ),
+      );
     } catch (e) {
-      print('❌ Error handling notification response: $e');
+      print('❌ Error handling notification: $e');
+      _showSnackBar('Error: Could not load medication details');
     }
   }
 
@@ -166,8 +185,93 @@ class NotificationService {
     }
   }
 
+  void checkAndRecordSkippedMedications(String userId) {
+  print('🔍 เริ่มตรวจสอบยาที่ไม่ได้ทาน');
+  
+  FirebaseFirestore.instance
+      .collection('Medications')
+      .where('user_id', isEqualTo: userId)
+      .snapshots()
+      .listen((snapshot) async {
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final notificationTimes = List<String>.from(data['Notification_times'] ?? []);
+      final rfidTag = data['RFID_tag'];
+      final medicationId = doc.id;
+      
+      for (String time in notificationTimes) {
+        await _checkAndRecordSkip(
+          userId: userId,
+          rfidTag: rfidTag,
+          medicationId: medicationId,
+          scheduledTime: time,
+        );
+      }
+    }
+  });
+}
+
+Future<void> _checkAndRecordSkip({
+  required String userId,
+  required String rfidTag,
+  required String medicationId,
+  required String scheduledTime,
+}) async {
+  // รับวันที่ปัจจุบัน
+  final today = DateTime.now();
+  final formattedDate = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+  
+  // แปลงเวลาที่กำหนด
+  final timeParts = scheduledTime.split(':');
+  final scheduledDateTime = DateTime(
+    today.year,
+    today.month,
+    today.day,
+    int.parse(timeParts[0]),
+    int.parse(timeParts[1]),
+  );
+  
+  // ตรวจสอบว่าผ่านไป 2 ชั่วโมงหรือยัง
+  final difference = today.difference(scheduledDateTime);
+  if (difference.inMinutes <= 120) {
+    print('⏳ ยังไม่ถึงเวลาบันทึก Skip สำหรับ $scheduledTime');
+    return;
+  }
+  
+  // ตรวจสอบว่ามีการบันทึกไปแล้วหรือไม่
+  final existingRecord = await FirebaseFirestore.instance
+      .collection('Medication_history')
+      .where('User_id', isEqualTo: userId)
+      .where('RFID_tag', isEqualTo: rfidTag)
+      .where('Medication_id', isEqualTo: medicationId)
+      .where('Scheduled_time', isEqualTo: scheduledTime)
+      .where('Date', isEqualTo: formattedDate)
+      .get();
+      
+  if (existingRecord.docs.isNotEmpty) {
+    print('✅ มีการบันทึกข้อมูลแล้วสำหรับ $scheduledTime');
+    return;
+  }
+  
+  // บันทึกเป็น Skip
+  print('⚠️ บันทึก Skip สำหรับ $scheduledTime');
+  await FirebaseFirestore.instance.collection('Medication_history').add({
+    'User_id': userId,
+    'RFID_tag': rfidTag,
+    'Medication_id': medicationId,
+    'Scheduled_time': scheduledTime,
+    'Date': formattedDate,
+    'Status': 'Skip',
+    'AutoSave': true,
+    'mark': false,
+    'Intake_time': Timestamp.now(),
+  });
+}
+
   void listenToMedicationChanges(String userId) {
     print('🔍 Listening for medication changes for User ID: $userId');
+
+  checkAndRecordSkippedMedications(userId);
 
     FirebaseFirestore.instance
         .collection('Medications')

@@ -110,7 +110,7 @@ class _WelcomePageState extends State<WelcomePage> {
                     alignment: Alignment.center,
                     child: OutlinedButton(
                       onPressed: () {
-                        Navigator.pushNamed(context, '/register');
+                        Navigator.pushNamed(context, '/term');
                       },
                       style: OutlinedButton.styleFrom(
                         backgroundColor: const Color(0xFFFFF4E0),

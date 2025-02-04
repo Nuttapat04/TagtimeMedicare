@@ -12,9 +12,11 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late TabController _tabController;
-  int displayCount = 10;
+  int displayCount = 10; // สำหรับ List tab
+  int _displayDays = 3; // เริ่มต้นแสดง 3 วัน สำหรับ History tab
+  static const int _maxDays = 10; // จำนวนวันสูงสุดที่แสดงได้
 
   @override
   void initState() {
@@ -104,7 +106,8 @@ class _HistoryPageState extends State<HistoryPage>
               : medications.length;
 
           return ListView.builder(
-            itemCount: itemsToShow + (medications.length > displayCount ? 1 : 0),
+            itemCount:
+                itemsToShow + (medications.length > displayCount ? 1 : 0),
             itemBuilder: (context, index) {
               if (index == itemsToShow) {
                 return Padding(
@@ -150,14 +153,11 @@ class _HistoryPageState extends State<HistoryPage>
 
               final formattedStartDate =
                   DateFormat('dd/MM/yyyy').format(startDate);
-              final formattedEndDate =
-                  DateFormat('dd/MM/yyyy').format(endDate);
+              final formattedEndDate = DateFormat('dd/MM/yyyy').format(endDate);
 
               return Card(
-                margin: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 16,
-                ),
+                margin:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 elevation: 6,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
@@ -229,7 +229,9 @@ class _HistoryPageState extends State<HistoryPage>
   Widget _buildHistoryPage() {
     return RefreshIndicator(
       onRefresh: () async {
-        setState(() {}); // Refresh data
+        setState(() {
+          _displayDays = 3; // reset กลับไปแสดง 3 วันเมื่อ refresh
+        });
       },
       child: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -243,7 +245,6 @@ class _HistoryPageState extends State<HistoryPage>
           }
 
           final history = snapshot.data!.docs;
-
           if (history.isEmpty) {
             return const Center(
               child: Text(
@@ -253,49 +254,223 @@ class _HistoryPageState extends State<HistoryPage>
             );
           }
 
-          return ListView.builder(
-            itemCount: history.length,
-            itemBuilder: (context, index) {
-              final entry = history[index].data() as Map<String, dynamic>;
-              final status = entry['Status'] ?? 'Missed';
-              final time = (entry['Intake_time'] as Timestamp).toDate();
+          DateTime now = DateTime.now();
+          DateTime cutoffDate = now.subtract(Duration(days: _displayDays));
 
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                elevation: 6,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Status: $status',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFFC76355),
+          return FutureBuilder<Map<String, String>>(
+            future: _fetchMedicationNames(history),
+            builder: (context, medSnapshot) {
+              if (!medSnapshot.hasData) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final medNames = medSnapshot.data!;
+              Map<String, Map<String, List<Map<String, dynamic>>>>
+                  groupedHistory = {};
+
+              // กรองข้อมูลตามจำนวนวันที่ต้องการแสดง
+              for (var doc in history) {
+                final data = doc.data() as Map<String, dynamic>;
+                final timestamp = (data['Intake_time'] as Timestamp).toDate();
+
+                // ข้ามข้อมูลที่เก่าเกินกว่าจำนวนวันที่ต้องการแสดง
+                if (timestamp.isBefore(cutoffDate)) continue;
+
+                final dateKey = DateFormat('dd/MM/yyyy').format(timestamp);
+                final medId = data['Medication_id'] ?? 'Unknown';
+                final medName = medNames[medId] ?? 'Unknown Medication';
+                final status = data['Status'] ?? 'Missed';
+
+                final entry = {
+                  'Scheduled_time': data['Scheduled_time'] ?? 'Unknown',
+                  'Status': status,
+                  'Time': timestamp,
+                };
+
+                groupedHistory.putIfAbsent(dateKey, () => {});
+                groupedHistory[dateKey]!.putIfAbsent(medName, () => []);
+                groupedHistory[dateKey]![medName]!.add(entry);
+              }
+
+              // คำนวณว่ามีข้อมูลเกิน _displayDays หรือไม่
+              bool hasMoreDays = history.any((doc) {
+                final timestamp = (doc.data()
+                    as Map<String, dynamic>)['Intake_time'] as Timestamp;
+                return timestamp.toDate().isBefore(cutoffDate) &&
+                    timestamp
+                        .toDate()
+                        .isAfter(now.subtract(Duration(days: _maxDays)));
+              });
+
+              return ListView(
+                children: [
+                  ...groupedHistory.entries.map((dateEntry) {
+                    final date = dateEntry.key;
+                    final medicationsByName = dateEntry.value;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          child: Text(
+                            date,
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFFC76355),
+                            ),
+                          ),
+                        ),
+                        ...medicationsByName.entries.map((medEntry) {
+                          final medName = medEntry.key;
+                          final times = medEntry.value;
+
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 6, horizontal: 16),
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    medName,
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFFC76355),
+                                    ),
+                                  ),
+                                  ...times
+                                      .map((med) => Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                vertical: 4.0),
+                                            child: Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  med['Scheduled_time'],
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    color: Colors.black54,
+                                                  ),
+                                                ),
+                                                Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: med['Status'] ==
+                                                            'On Time'
+                                                        ? Colors.green
+                                                        : Colors.red,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                  ),
+                                                  child: Text(
+                                                    med['Status'],
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ))
+                                      .toList(),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    );
+                  }).toList(),
+
+                  // แสดงปุ่ม See More ถ้ายังมีข้อมูลที่เหลือและยังไม่ถึง _maxDays
+                  if (hasMoreDays && _displayDays < _maxDays)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFC76355),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 12,
+                          ),
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _displayDays =
+                                _displayDays + 3; // เพิ่มครั้งละ 3 วัน
+                            if (_displayDays > _maxDays) {
+                              _displayDays = _maxDays;
+                            }
+                          });
+                        },
+                        child: const Text(
+                          'See More',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Time: ${DateFormat('hh:mm a on dd/MM/yyyy').format(time)}',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          color: Color(0xFFC76355),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               );
             },
           );
         },
       ),
     );
+  }
+
+  /// ✅ ดึง `M_name` จาก `Medications` โดยใช้ `Medication_id`
+  Future<Map<String, String>> _fetchMedicationNames(
+      List<QueryDocumentSnapshot> history) async {
+    Map<String, String> medNames = {};
+    Set<String> medIds = {};
+
+    for (var doc in history) {
+      final data = doc.data() as Map<String, dynamic>;
+      final medId = data['Medication_id'];
+      if (medId != null) {
+        medIds.add(medId);
+      }
+    }
+
+    if (medIds.isEmpty) return medNames;
+
+    try {
+      var snapshot = await FirebaseFirestore.instance
+          .collection('Medications')
+          .where(FieldPath.documentId, whereIn: medIds.toList())
+          .get();
+
+      for (var doc in snapshot.docs) {
+        medNames[doc.id] = doc['M_name'] ?? 'Unknown Medication';
+      }
+    } catch (e) {
+      print("🔥 Error fetching medication names: $e");
+    }
+
+    return medNames;
   }
 }
