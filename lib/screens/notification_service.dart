@@ -7,6 +7,8 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:flutter/scheduler.dart';
+import 'dart:async';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -183,8 +185,93 @@ class NotificationService {
     }
   }
 
+  void checkAndRecordSkippedMedications(String userId) {
+  print('🔍 เริ่มตรวจสอบยาที่ไม่ได้ทาน');
+  
+  FirebaseFirestore.instance
+      .collection('Medications')
+      .where('user_id', isEqualTo: userId)
+      .snapshots()
+      .listen((snapshot) async {
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final notificationTimes = List<String>.from(data['Notification_times'] ?? []);
+      final rfidTag = data['RFID_tag'];
+      final medicationId = doc.id;
+      
+      for (String time in notificationTimes) {
+        await _checkAndRecordSkip(
+          userId: userId,
+          rfidTag: rfidTag,
+          medicationId: medicationId,
+          scheduledTime: time,
+        );
+      }
+    }
+  });
+}
+
+Future<void> _checkAndRecordSkip({
+  required String userId,
+  required String rfidTag,
+  required String medicationId,
+  required String scheduledTime,
+}) async {
+  // รับวันที่ปัจจุบัน
+  final today = DateTime.now();
+  final formattedDate = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+  
+  // แปลงเวลาที่กำหนด
+  final timeParts = scheduledTime.split(':');
+  final scheduledDateTime = DateTime(
+    today.year,
+    today.month,
+    today.day,
+    int.parse(timeParts[0]),
+    int.parse(timeParts[1]),
+  );
+  
+  // ตรวจสอบว่าผ่านไป 2 ชั่วโมงหรือยัง
+  final difference = today.difference(scheduledDateTime);
+  if (difference.inMinutes <= 120) {
+    print('⏳ ยังไม่ถึงเวลาบันทึก Skip สำหรับ $scheduledTime');
+    return;
+  }
+  
+  // ตรวจสอบว่ามีการบันทึกไปแล้วหรือไม่
+  final existingRecord = await FirebaseFirestore.instance
+      .collection('Medication_history')
+      .where('User_id', isEqualTo: userId)
+      .where('RFID_tag', isEqualTo: rfidTag)
+      .where('Medication_id', isEqualTo: medicationId)
+      .where('Scheduled_time', isEqualTo: scheduledTime)
+      .where('Date', isEqualTo: formattedDate)
+      .get();
+      
+  if (existingRecord.docs.isNotEmpty) {
+    print('✅ มีการบันทึกข้อมูลแล้วสำหรับ $scheduledTime');
+    return;
+  }
+  
+  // บันทึกเป็น Skip
+  print('⚠️ บันทึก Skip สำหรับ $scheduledTime');
+  await FirebaseFirestore.instance.collection('Medication_history').add({
+    'User_id': userId,
+    'RFID_tag': rfidTag,
+    'Medication_id': medicationId,
+    'Scheduled_time': scheduledTime,
+    'Date': formattedDate,
+    'Status': 'Skip',
+    'AutoSave': true,
+    'mark': false,
+    'Intake_time': Timestamp.now(),
+  });
+}
+
   void listenToMedicationChanges(String userId) {
     print('🔍 Listening for medication changes for User ID: $userId');
+
+  checkAndRecordSkippedMedications(userId);
 
     FirebaseFirestore.instance
         .collection('Medications')

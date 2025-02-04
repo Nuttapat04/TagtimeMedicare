@@ -24,12 +24,13 @@ class SummaryPage extends StatefulWidget {
   _SummaryPageState createState() => _SummaryPageState();
 }
 
-class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStateMixin {
+class _SummaryPageState extends State<SummaryPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int touchedIndex = -1;
   String selectedMedicine = "";
   String selectedMedicineId = "";
-  
+
   @override
   void initState() {
     super.initState();
@@ -43,265 +44,285 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
   }
 
   Future<void> generateMonthlyReport(DateTime? month) async {
-  try {
-    setState(() {
-      isGeneratingReport = true;
-    });
+    try {
+      setState(() {
+        isGeneratingReport = true;
+      });
 
-    final reportMonth = month ?? DateTime.now();
-    final startOfMonth = DateTime(reportMonth.year, reportMonth.month, 1);
-    final endOfMonth = DateTime(reportMonth.year, reportMonth.month + 1, 0);
+      final reportMonth = month ?? DateTime.now();
+      final startOfMonth = DateTime(reportMonth.year, reportMonth.month, 1);
+      final endOfMonth = DateTime(reportMonth.year, reportMonth.month + 1, 0);
 
-    // Debug log
-    print('Starting to generate report for ${DateFormat('MMMM yyyy').format(reportMonth)}...');
-    
-    final medicationSnapshot = await FirebaseFirestore.instance
-        .collection('Medications')
-        .where('user_id', isEqualTo: widget.userId)
-        .get();
+      // Debug log
+      print(
+          'Starting to generate report for ${DateFormat('MMMM yyyy').format(reportMonth)}...');
 
-    final historySnapshot = await FirebaseFirestore.instance
-        .collection('Medication_history')
-        .where('User_id', isEqualTo: widget.userId)
-        .where('Intake_time', isGreaterThanOrEqualTo: startOfMonth)
-        .where('Intake_time', isLessThanOrEqualTo: endOfMonth)
-        .where('mark', isEqualTo: true)
-        .get();
+      final medicationSnapshot = await FirebaseFirestore.instance
+          .collection('Medications')
+          .where('user_id', isEqualTo: widget.userId)
+          .get();
 
-    if (medicationSnapshot.docs.isEmpty || historySnapshot.docs.isEmpty) {
+      final historySnapshot = await FirebaseFirestore.instance
+          .collection('Medication_history')
+          .where('User_id', isEqualTo: widget.userId)
+          .where('Intake_time', isGreaterThanOrEqualTo: startOfMonth)
+          .where('Intake_time', isLessThanOrEqualTo: endOfMonth)
+          .where('mark', isEqualTo: true)
+          .get();
+
+      if (medicationSnapshot.docs.isEmpty || historySnapshot.docs.isEmpty) {
+        if (!mounted) return;
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: const Color(0xFFFEF4E0),
+            title: const Text(
+              'No Data',
+              style: TextStyle(color: Color(0xFFC76355)),
+            ),
+            content: const Text(
+              'No medication data found for the selected month.',
+              style: TextStyle(color: Colors.black),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'OK',
+                  style: TextStyle(color: Color(0xFFC76355)),
+                ),
+              ),
+            ],
+          ),
+        );
+        return;
+      }
+
+      // Process data
+      Map<String, Map<String, dynamic>> medicationStats = {};
+
+      for (var doc in medicationSnapshot.docs) {
+        final data = doc.data();
+        medicationStats[doc.id] = {
+          'name': data['M_name'],
+          'frequency': data['Frequency'],
+          'total': 0,
+          'onTime': 0,
+          'late': 0,
+          'adherenceRate': 0.0,
+          'notificationTimes': data['Notification_times'],
+          'startDate': data['Start_date'],
+          'endDate': data['End_date'],
+        };
+      }
+
+      for (var doc in historySnapshot.docs) {
+        final data = doc.data();
+        final medId = data['Medication_id'] as String;
+
+        if (medicationStats.containsKey(medId)) {
+          medicationStats[medId]!['total'] =
+              medicationStats[medId]!['total']! + 1;
+
+          if (data['Status'] == 'On Time') {
+            medicationStats[medId]!['onTime'] =
+                medicationStats[medId]!['onTime']! + 1;
+          } else if (data['Status'] == 'Late') {
+            medicationStats[medId]!['late'] =
+                medicationStats[medId]!['late']! + 1;
+          }
+        }
+      }
+
+      medicationStats.forEach((key, stats) {
+        if (stats['total'] > 0) {
+          stats['adherenceRate'] =
+              (stats['onTime'] / stats['total'] * 100).round();
+        }
+      });
+
+      final pdf = pw.Document();
+
+      final regularFont = pw.Font.helvetica();
+      final boldFont = pw.Font.helveticaBold();
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          build: (context) => [
+            pw.Header(
+              level: 0,
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Medication Report',
+                    style: pw.TextStyle(
+                      font: boldFont,
+                      fontSize: 24,
+                    ),
+                  ),
+                  pw.Text(
+                    DateFormat('MMMM yyyy').format(reportMonth),
+                    style: pw.TextStyle(
+                      font: regularFont,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            pw.SizedBox(height: 20),
+            ...medicationStats.entries.map((entry) {
+              final stats = entry.value;
+              return pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Container(
+                    color: PdfColors.grey200,
+                    padding: const pw.EdgeInsets.all(10),
+                    child: pw.Text(
+                      stats['name'],
+                      style: pw.TextStyle(
+                        font: boldFont,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Table(
+                    border: pw.TableBorder.all(),
+                    children: [
+                      pw.TableRow(
+                        decoration: pw.BoxDecoration(color: PdfColors.grey200),
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text('Frequency',
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text('Total Doses',
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text('On Time',
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text('Late',
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text('Adherence Rate',
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                        ],
+                      ),
+                      pw.TableRow(
+                        children: [
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(stats['frequency'].toString(),
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(stats['total'].toString(),
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(stats['onTime'].toString(),
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(stats['late'].toString(),
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                          pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text('${stats['adherenceRate']}%',
+                                style: pw.TextStyle(font: regularFont)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Text(
+                    'Notification Times: ${(stats['notificationTimes'] as List).join(', ')}',
+                    style: pw.TextStyle(
+                      font: regularFont,
+                      fontSize: 12,
+                    ),
+                  ),
+                  pw.SizedBox(height: 20),
+                ],
+              );
+            }).toList(),
+          ],
+        ),
+      );
+
+      // Save and open PDF
+      final output = await getTemporaryDirectory();
+      final filename =
+          'medication_report_${DateFormat('yyyy_MM').format(reportMonth)}.pdf';
+      final file = File('${output.path}/$filename');
+      await file.writeAsBytes(await pdf.save());
+      await OpenFile.open(file.path);
+
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Report generated successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e, stackTrace) {
+      print('Error generating report: $e');
+      print('Stack trace: $stackTrace');
+
+      if (!mounted) return;
+
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: const Color(0xFFFEF4E0),
-          title: const Text('No Data',
+          title: const Text(
+            'Error',
             style: TextStyle(color: Color(0xFFC76355)),
           ),
-          content: const Text(
-            'No medication data found for the selected month.',
-            style: TextStyle(color: Colors.black),
+          content: Text(
+            'Failed to generate report: ${e.toString()}',
+            style: const TextStyle(color: Colors.black),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('OK',
+              child: const Text(
+                'OK',
                 style: TextStyle(color: Color(0xFFC76355)),
               ),
             ),
           ],
         ),
       );
-      return;
-    }
-
-    // Process data
-    Map<String, Map<String, dynamic>> medicationStats = {};
-    
-    for (var doc in medicationSnapshot.docs) {
-      final data = doc.data();
-      medicationStats[doc.id] = {
-        'name': data['M_name'],
-        'frequency': data['Frequency'],
-        'total': 0,
-        'onTime': 0,
-        'late': 0,
-        'adherenceRate': 0.0,
-        'notificationTimes': data['Notification_times'],
-        'startDate': data['Start_date'],
-        'endDate': data['End_date'],
-      };
-    }
-
-    for (var doc in historySnapshot.docs) {
-      final data = doc.data();
-      final medId = data['Medication_id'] as String;
-      
-      if (medicationStats.containsKey(medId)) {
-        medicationStats[medId]!['total'] = medicationStats[medId]!['total']! + 1;
-        
-        if (data['Status'] == 'On Time') {
-          medicationStats[medId]!['onTime'] = medicationStats[medId]!['onTime']! + 1;
-        } else if (data['Status'] == 'Late') {
-          medicationStats[medId]!['late'] = medicationStats[medId]!['late']! + 1;
-        }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isGeneratingReport = false;
+        });
       }
-    }
-
-    medicationStats.forEach((key, stats) {
-      if (stats['total'] > 0) {
-        stats['adherenceRate'] = (stats['onTime'] / stats['total'] * 100).round();
-      }
-    });
-
-    final pdf = pw.Document();
-
-    final regularFont = pw.Font.helvetica();
-    final boldFont = pw.Font.helveticaBold();
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        build: (context) => [
-          pw.Header(
-            level: 0,
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Text(
-                  'Medication Report',
-                  style: pw.TextStyle(
-                    font: boldFont,
-                    fontSize: 24,
-                  ),
-                ),
-                pw.Text(
-                  DateFormat('MMMM yyyy').format(reportMonth),
-                  style: pw.TextStyle(
-                    font: regularFont,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          pw.SizedBox(height: 20),
-          ...medicationStats.entries.map((entry) {
-            final stats = entry.value;
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Container(
-                  color: PdfColors.grey200,
-                  padding: const pw.EdgeInsets.all(10),
-                  child: pw.Text(
-                    stats['name'],
-                    style: pw.TextStyle(
-                      font: boldFont,
-                      fontSize: 18,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-                pw.Table(
-                  border: pw.TableBorder.all(),
-                  children: [
-                    pw.TableRow(
-                      decoration: pw.BoxDecoration(color: PdfColors.grey200),
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text('Frequency', style: pw.TextStyle(font: regularFont)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text('Total Doses', style: pw.TextStyle(font: regularFont)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text('On Time', style: pw.TextStyle(font: regularFont)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text('Late', style: pw.TextStyle(font: regularFont)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text('Adherence Rate', style: pw.TextStyle(font: regularFont)),
-                        ),
-                      ],
-                    ),
-                    pw.TableRow(
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(stats['frequency'].toString(), style: pw.TextStyle(font: regularFont)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(stats['total'].toString(), style: pw.TextStyle(font: regularFont)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(stats['onTime'].toString(), style: pw.TextStyle(font: regularFont)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(stats['late'].toString(), style: pw.TextStyle(font: regularFont)),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text('${stats['adherenceRate']}%', style: pw.TextStyle(font: regularFont)),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 10),
-                pw.Text(
-                  'Notification Times: ${(stats['notificationTimes'] as List).join(', ')}',
-                  style: pw.TextStyle(
-                    font: regularFont,
-                    fontSize: 12,
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-              ],
-            );
-          }).toList(),
-        ],
-      ),
-    );
-
-    // Save and open PDF
-    final output = await getTemporaryDirectory();
-    final filename = 'medication_report_${DateFormat('yyyy_MM').format(reportMonth)}.pdf';
-    final file = File('${output.path}/$filename');
-    await file.writeAsBytes(await pdf.save());
-    await OpenFile.open(file.path);
-
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Report generated successfully'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-  } catch (e, stackTrace) {
-    print('Error generating report: $e');
-    print('Stack trace: $stackTrace');
-    
-    if (!mounted) return;
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFFFEF4E0),
-        title: const Text('Error',
-          style: TextStyle(color: Color(0xFFC76355)),
-        ),
-        content: Text(
-          'Failed to generate report: ${e.toString()}',
-          style: const TextStyle(color: Colors.black),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK',
-              style: TextStyle(color: Color(0xFFC76355)),
-            ),
-          ),
-        ],
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        isGeneratingReport = false;
-      });
     }
   }
-}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -321,7 +342,8 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
           indicatorColor: const Color(0xFFC76355),
           labelColor: const Color(0xFFC76355),
           unselectedLabelColor: Colors.grey,
-          labelStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          labelStyle:
+              const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           tabs: const [
             Tab(text: 'Current Medicines'),
             Tab(text: 'Summary'),
@@ -339,94 +361,96 @@ class _SummaryPageState extends State<SummaryPage> with SingleTickerProviderStat
   }
 
   Widget _buildSummaryPage() {
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-    child: Column(
-      children: [
-        _buildTitle("Daily Intake (Last 7 Days)"),
-        const SizedBox(height: 10),
-        SizedBox(height: 200, child: _buildIntakeBarChart()),
-        const SizedBox(height: 20),
-        _buildExportSection(),
-        const SizedBox(height: 20),
-        _buildTitle("Medication Distribution"),
-        const SizedBox(height: 10),
-        Expanded(child: _buildTypePieChart()),
-      ],
-    ),
-  );
-}
-Widget _buildExportSection() {
-  return Container(
-    padding: const EdgeInsets.symmetric(vertical: 10),
-    child: Column(
-      children: [
-        OutlinedButton.icon(
-          onPressed: _selectMonth,
-          icon: const Icon(Icons.calendar_month, color: Color(0xFFC76355)),
-          label: Text(
-            selectedMonth == null 
-              ? 'Select Month' 
-              : DateFormat('MMMM yyyy').format(selectedMonth!),
-            style: const TextStyle(color: Color(0xFFC76355)),
-          ),
-          style: OutlinedButton.styleFrom(
-            side: const BorderSide(color: Color(0xFFC76355)),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-        ),
-        const SizedBox(height: 10),
-        ElevatedButton.icon(
-          onPressed: isGeneratingReport ? null : () => generateMonthlyReport(selectedMonth),
-          icon: isGeneratingReport 
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              )
-            : const Icon(Icons.download, color: Colors.white),
-          label: Text(
-            isGeneratingReport ? 'Generating...' : 'Export Report',
-            style: const TextStyle(color: Colors.white),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFC76355),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Column(
+        children: [
+          _buildTitle("Daily Intake (Last 7 Days)"),
+          const SizedBox(height: 10),
+          SizedBox(height: 200, child: _buildIntakeBarChart()),
+          const SizedBox(height: 20),
+          _buildExportSection(),
+          const SizedBox(height: 20),
+          _buildTitle("Medication Distribution"),
+          const SizedBox(height: 10),
+          Expanded(child: _buildTypePieChart()),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildExportSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        children: [
+          OutlinedButton.icon(
+            onPressed: _selectMonth,
+            icon: const Icon(Icons.calendar_month, color: Color(0xFFC76355)),
+            label: Text(
+              selectedMonth == null
+                  ? 'Select Month'
+                  : DateFormat('MMMM yyyy').format(selectedMonth!),
+              style: const TextStyle(color: Color(0xFFC76355)),
+            ),
+            style: OutlinedButton.styleFrom(
+              side: const BorderSide(color: Color(0xFFC76355)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton.icon(
+            onPressed: isGeneratingReport
+                ? null
+                : () => generateMonthlyReport(selectedMonth),
+            icon: isGeneratingReport
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Icon(Icons.download, color: Colors.white),
+            label: Text(
+              isGeneratingReport ? 'Generating...' : 'Export Report',
+              style: const TextStyle(color: Colors.white),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFC76355),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
 // เพิ่มตัวแปรสำหรับเก็บเดือนที่เลือก
-DateTime? selectedMonth;
-bool isGeneratingReport = false;
+  DateTime? selectedMonth;
+  bool isGeneratingReport = false;
 
 // เพิ่มฟังก์ชันเลือกเดือน
-void _selectMonth() async {
-  final DateTime? picked = await showMonthYearPicker(
-    context: context,
-    initialDate: selectedMonth ?? DateTime.now(),
-    firstDate: DateTime(2020),
-    lastDate: DateTime.now(),
-    locale: const Locale('en', 'US'),
-  );
-  
-  if (picked != null) {
-    setState(() {
-      selectedMonth = picked;
-    });
+  void _selectMonth() async {
+    final DateTime? picked = await showMonthYearPicker(
+      context: context,
+      initialDate: selectedMonth ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      locale: const Locale('en', 'US'),
+    );
+
+    if (picked != null) {
+      setState(() {
+        selectedMonth = picked;
+      });
+    }
   }
-}
 
   /// ✅ **Current Medicines - ดึงจาก Firestore**
   Widget _buildListPage() {
@@ -777,7 +801,7 @@ void _selectMonth() async {
           ? FirebaseFirestore.instance
               .collection('Medication_history')
               .where('User_id', isEqualTo: widget.userId)
-              .where('mark', isEqualTo: true)
+              //.where('mark', isEqualTo: true)
               .where('Medication_id', isEqualTo: selectedMedicineId)
               .orderBy('Intake_time', descending: true)
               .limit(100)
@@ -785,7 +809,7 @@ void _selectMonth() async {
           : FirebaseFirestore.instance
               .collection('Medication_history')
               .where('User_id', isEqualTo: widget.userId)
-              .where('mark', isEqualTo: true)
+              //.where('mark', isEqualTo: true)
               .orderBy('Intake_time', descending: true)
               .snapshots(),
       builder: (context, snapshot) {
@@ -823,13 +847,13 @@ void _selectMonth() async {
         }
 
         Map<String, Map<String, int>> intakeData = {
-          "Mon": {"onTime": 0, "late": 0},
-          "Tue": {"onTime": 0, "late": 0},
-          "Wed": {"onTime": 0, "late": 0},
-          "Thu": {"onTime": 0, "late": 0},
-          "Fri": {"onTime": 0, "late": 0},
-          "Sat": {"onTime": 0, "late": 0},
-          "Sun": {"onTime": 0, "late": 0}
+          "Mon": {"onTime": 0, "late": 0, "skip": 0},
+          "Tue": {"onTime": 0, "late": 0, "skip": 0},
+          "Wed": {"onTime": 0, "late": 0, "skip": 0},
+          "Thu": {"onTime": 0, "late": 0, "skip": 0},
+          "Fri": {"onTime": 0, "late": 0, "skip": 0},
+          "Sat": {"onTime": 0, "late": 0, "skip": 0},
+          "Sun": {"onTime": 0, "late": 0, "skip": 0}
         };
 
         final now = DateTime.now();
@@ -848,12 +872,17 @@ void _selectMonth() async {
                   (intakeData[day]!['onTime'] ?? 0) + 1;
             } else if (status == 'Late') {
               intakeData[day]!['late'] = (intakeData[day]!['late'] ?? 0) + 1;
+            } else if (status == 'Skip') {
+              intakeData[day]!['skip'] = (intakeData[day]!['skip'] ?? 0) + 1;
             }
           }
         }
 
         double maxY = intakeData.values
-            .map((dayData) => (dayData['onTime'] ?? 0) + (dayData['late'] ?? 0))
+            .map((dayData) =>
+                (dayData['onTime'] ?? 0) +
+                (dayData['late'] ?? 0) +
+                (dayData['skip'] ?? 0))
             .reduce(max)
             .toDouble();
         maxY = maxY == 0 ? 10 : (maxY * 1.2).ceilToDouble();
@@ -863,12 +892,14 @@ void _selectMonth() async {
               .indexOf(entry.key);
           final onTimeValue = entry.value['onTime']?.toDouble() ?? 0;
           final lateValue = entry.value['late']?.toDouble() ?? 0;
+          final skipValue =
+              entry.value['skip']?.toDouble() ?? 0; // เพิ่มบรรทัดนี้
 
           return BarChartGroupData(
             x: index,
             barRods: [
               BarChartRodData(
-                toY: onTimeValue + lateValue,
+                toY: onTimeValue + lateValue + skipValue,
                 color: Colors.transparent,
                 width: touchedIndex.value == index ? 22 : 16,
                 borderRadius:
@@ -883,6 +914,11 @@ void _selectMonth() async {
                     onTimeValue,
                     onTimeValue + lateValue,
                     Colors.red.withOpacity(0.8),
+                  ),
+                  BarChartRodStackItem(
+                    onTimeValue + lateValue,
+                    onTimeValue + lateValue + skipValue,
+                    Colors.orange.withOpacity(0.8), // สีส้มสำหรับ Skip
                   ),
                 ],
                 backDrawRodData: BackgroundBarChartRodData(
@@ -921,6 +957,14 @@ void _selectMonth() async {
                         ),
                         const SizedBox(width: 4),
                         const Text('Late'),
+                        const SizedBox(width: 16),
+                        Container(
+                          width: 16,
+                          height: 16,
+                          color: Colors.orange.withOpacity(0.8),
+                        ),
+                        const SizedBox(width: 4),
+                        const Text('Skip'),
                       ],
                     ),
                   ),
@@ -957,20 +1001,38 @@ void _selectMonth() async {
                               ),
                               titlesData: FlTitlesData(
                                 leftTitles: AxisTitles(
-                                  sideTitles: SideTitles(
-                                    showTitles: true,
-                                    reservedSize: 30,
-                                    getTitlesWidget: (value, meta) {
-                                      return Text(
-                                        value.toInt().toString(),
-                                        style: const TextStyle(
-                                          color: Color(0xFF666666),
-                                          fontSize: 12,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
+  axisNameWidget: Column(
+    children: [
+      const Text(
+        'จำนวนครั้ง', 
+        style: TextStyle(
+          color: Color(0xFFC76355),
+          fontSize: 14, 
+          fontWeight: FontWeight.bold,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: 12), 
+    ],
+  ),
+  sideTitles: SideTitles(
+    reservedSize: 45,
+    showTitles: true,
+    getTitlesWidget: (value, meta) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 8), 
+        child: Text(
+          value.toInt().toString(),
+          style: const TextStyle(
+            color: Color(0xFF666666),
+            fontSize: 12,
+          ),
+        ),
+      );
+    },
+  ),
+),
+
                                 rightTitles: AxisTitles(
                                     sideTitles: SideTitles(showTitles: false)),
                                 topTitles: AxisTitles(
@@ -1031,10 +1093,16 @@ void _selectMonth() async {
                           ),
                           if (touchedIndexValue != -1)
                             Positioned(
-                              left: (touchedIndexValue *
-                                      (MediaQuery.of(context).size.width - 60) /
-                                      7) +
-                                  45,
+                              // ปรับตำแหน่งซ้าย-ขวา ตามขนาดจอ
+                              left: touchedIndexValue ==
+                                      6 // ถ้าเป็นวัน Sun (index = 6)
+                                  ? MediaQuery.of(context).size.width -
+                                      165 // ชิดขอบขวา
+                                  : (touchedIndexValue *
+                                          (MediaQuery.of(context).size.width -
+                                              60) /
+                                          7) +
+                                      45,
                               top: 0,
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -1048,35 +1116,48 @@ void _selectMonth() async {
                                   children: [
                                     Text(
                                       'On Time: ${intakeData[[
-                                        "Mon",
-                                        "Tue",
-                                        "Wed",
-                                        "Thu",
-                                        "Fri",
-                                        "Sat",
-                                        "Sun"
-                                      ][touchedIndexValue]]!["onTime"]}',
+                                            "Mon",
+                                            "Tue",
+                                            "Wed",
+                                            "Thu",
+                                            "Fri",
+                                            "Sat",
+                                            "Sun"
+                                          ][touchedIndexValue]]!["onTime"] ?? 0}',
                                       style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                     Text(
                                       'Late: ${intakeData[[
-                                        "Mon",
-                                        "Tue",
-                                        "Wed",
-                                        "Thu",
-                                        "Fri",
-                                        "Sat",
-                                        "Sun"
-                                      ][touchedIndexValue]]!["late"]}',
+                                            "Mon",
+                                            "Tue",
+                                            "Wed",
+                                            "Thu",
+                                            "Fri",
+                                            "Sat",
+                                            "Sun"
+                                          ][touchedIndexValue]]!["late"] ?? 0}',
                                       style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold),
+                                    ),
+                                    Text(
+                                      'Skip: ${intakeData[[
+                                            "Mon",
+                                            "Tue",
+                                            "Wed",
+                                            "Thu",
+                                            "Fri",
+                                            "Sat",
+                                            "Sun"
+                                          ][touchedIndexValue]]!["skip"] ?? 0}',
+                                      style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
