@@ -8,7 +8,6 @@ import 'dart:io';
 class RegisterPage extends StatefulWidget {
   @override
   _RegisterPageState createState() => _RegisterPageState();
-  
 }
 
 class _RegisterPageState extends State<RegisterPage> {
@@ -25,16 +24,18 @@ class _RegisterPageState extends State<RegisterPage> {
   TextEditingController surnameController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
   TextEditingController dateController = TextEditingController();
+  TextEditingController symptomsController = TextEditingController();
+
   DateTime? selectedDate;
 
-  File? _imageFile;  // สำหรับเก็บรูปภาพที่เลือก
+  File? _imageFile; // สำหรับเก็บรูปภาพที่เลือก
   bool isLoading = false;
   bool _isPasswordHidden = true;
-  
+
   bool isOver14Years(DateTime birthDate) {
     final DateTime now = DateTime.now();
     int age = now.year - birthDate.year;
-    if (now.month < birthDate.month || 
+    if (now.month < birthDate.month ||
         (now.month == birthDate.month && now.day < birthDate.day)) {
       age--;
     }
@@ -76,7 +77,8 @@ class _RegisterPageState extends State<RegisterPage> {
     if (_imageFile == null) return null;
 
     try {
-      final String fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final String fileName =
+          'profile_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final Reference ref = FirebaseStorage.instance
           .ref()
           .child('profile_images')
@@ -93,90 +95,91 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> registerUser() async {
-  if (_formKey.currentState!.validate()) {
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      // Check username availability first
-      final isAvailable = await isUsernameAvailable(usernameController.text.trim());
-      if (!isAvailable) {
-        throw Exception('Username is already taken');
-      }
-
-      // Check age requirement
-      if (selectedDate == null || !isOver14Years(selectedDate!)) {
-        throw Exception('You must be at least 14 years old to register');
-      }
-
-      // Create user account in Authentication first
-      final userCredential = await _auth.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-
-      // Get the user ID
-      final uid = userCredential.user!.uid;
-
-      // Upload profile image if exists
-      String? photoURL;
-      if (_imageFile != null) {
-        photoURL = await _uploadImage();
-      }
-
-      // Create user data object
-      final userData = {
-        'Username': usernameController.text.trim().toLowerCase(),
-        'Email': emailController.text.trim().toLowerCase(),
-        'Name': nameController.text.trim(),
-        'Surname': surnameController.text.trim(),
-        'Phone': phoneController.text.trim(),
-        'Date_of_Birth': Timestamp.fromDate(selectedDate!),
-        'Created_at': FieldValue.serverTimestamp(),
-        'Last_login': FieldValue.serverTimestamp(),
-        'Role': 'user',
-        'photoURL': photoURL ?? '',
-        'loginType': 'email',
-        'isActive': true,
-        'deviceTokens': [],
-      };
-
-      // Add user data to Firestore
-      await _firestore.collection('Users').doc(uid).set(userData);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Registration Successful!')),
-      );
-
-      Navigator.pop(context);
-
-    } catch (e) {
-      print('Error during registration: $e');
-      String message = 'An error occurred during registration';
-      
-      if (e is FirebaseAuthException) {
-        if (e.code == 'email-already-in-use') {
-          message = 'This email is already registered';
-        } else if (e.code == 'weak-password') {
-          message = 'The password provided is too weak';
-        } else if (e.code == 'invalid-email') {
-          message = 'The email address is not valid';
-        }
-      } else if (e is Exception) {
-        message = e.toString().replaceAll('Exception: ', '');
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
-    } finally {
+    if (_formKey.currentState!.validate()) {
       setState(() {
-        isLoading = false;
+        isLoading = true;
       });
+
+      try {
+        // Check username availability first
+        final isAvailable =
+            await isUsernameAvailable(usernameController.text.trim());
+        if (!isAvailable) {
+          throw Exception('Username is already taken');
+        }
+
+        // Check age requirement
+        if (selectedDate == null || !isOver14Years(selectedDate!)) {
+          throw Exception('You must be at least 14 years old to register');
+        }
+
+        // Create user account in Authentication first
+        final userCredential = await _auth.createUserWithEmailAndPassword(
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
+        );
+
+        // Get the user ID
+        final uid = userCredential.user!.uid;
+
+        // Upload profile image if exists
+        String? photoURL;
+        if (_imageFile != null) {
+          photoURL = await _uploadImage();
+        }
+
+        // Create user data object
+        final userData = {
+          'Username': usernameController.text.trim().toLowerCase(),
+          'Email': emailController.text.trim().toLowerCase(),
+          'Name': nameController.text.trim(),
+          'Surname': surnameController.text.trim(),
+          'Phone': phoneController.text.trim(),
+          'Date_of_Birth': Timestamp.fromDate(selectedDate!),
+          'Created_at': FieldValue.serverTimestamp(),
+          'Last_login': FieldValue.serverTimestamp(),
+          'Role': 'user',
+          'photoURL': photoURL ?? '',
+          'loginType': 'email',
+          'isActive': true,
+          'deviceTokens': [],
+          'symptoms': symptomsController.text.trim(), // เพิ่มข้อมูลอาการ
+        };
+
+        // Add user data to Firestore
+        await _firestore.collection('Users').doc(uid).set(userData);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Registration Successful!')),
+        );
+
+        Navigator.pop(context);
+      } catch (e) {
+        print('Error during registration: $e');
+        String message = 'An error occurred during registration';
+
+        if (e is FirebaseAuthException) {
+          if (e.code == 'email-already-in-use') {
+            message = 'This email is already registered';
+          } else if (e.code == 'weak-password') {
+            message = 'The password provided is too weak';
+          } else if (e.code == 'invalid-email') {
+            message = 'The email address is not valid';
+          }
+        } else if (e is Exception) {
+          message = e.toString().replaceAll('Exception: ', '');
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -246,8 +249,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter an email';
                           }
-                          final emailRegex =
-                              RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                          final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
                           if (!emailRegex.hasMatch(value)) {
                             return 'Please enter a valid email';
                           }
@@ -288,15 +290,17 @@ class _RegisterPageState extends State<RegisterPage> {
                       buildTextFormField(
                         controller: nameController,
                         label: 'First Name',
-                        validator: (value) =>
-                            value!.isEmpty ? 'Please enter your first name' : null,
+                        validator: (value) => value!.isEmpty
+                            ? 'Please enter your first name'
+                            : null,
                       ),
                       SizedBox(height: 16),
                       buildTextFormField(
                         controller: surnameController,
                         label: 'Last Name',
-                        validator: (value) =>
-                            value!.isEmpty ? 'Please enter your last name' : null,
+                        validator: (value) => value!.isEmpty
+                            ? 'Please enter your last name'
+                            : null,
                       ),
                       SizedBox(height: 16),
                       buildTextFormField(
@@ -327,6 +331,8 @@ class _RegisterPageState extends State<RegisterPage> {
                         },
                       ),
                       SizedBox(height: 16),
+                      buildSymptomsField(), // เพิ่มฟิลด์อาการตรงนี้
+                      SizedBox(height: 24), // เพิ่มระยะห่างก่อนปุ่ม Register
                       ElevatedButton(
                         onPressed: registerUser,
                         style: ElevatedButton.styleFrom(
@@ -347,6 +353,57 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget buildSymptomsField() {
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'อาการเจ็บป่วย (ไม่บังคับ)',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFC76355),
+            ),
+          ),
+          SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade400),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: TextFormField(
+              controller: symptomsController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: 'กรุณาระบุอาการเจ็บป่วยของท่าน (ถ้ามี)',
+                contentPadding: EdgeInsets.all(16),
+                border: InputBorder.none,
+                hintStyle: TextStyle(
+                  color: Colors.grey.shade500,
+                  fontSize: 14,
+                ),
+              ),
+              style: TextStyle(fontSize: 16),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4, left: 8),
+            child: Text(
+              'ข้อมูลนี้จะช่วยให้เราสามารถให้บริการที่เหมาะสมกับท่านได้ดียิ่งขึ้น',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey.shade600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -410,7 +467,8 @@ class _RegisterPageState extends State<RegisterPage> {
           return 'Include uppercase, lowercase & number';
         }
         // Check for common passwords
-        if (['password123', 'qwerty123', '12345678'].contains(value.toLowerCase())) {
+        if (['password123', 'qwerty123', '12345678']
+            .contains(value.toLowerCase())) {
           return 'Please use a stronger password';
         }
         return null;

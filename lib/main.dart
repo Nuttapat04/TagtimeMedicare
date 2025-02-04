@@ -20,6 +20,7 @@ import 'package:tagtime_medicare/screens/notification_service.dart';
 import 'package:tagtime_medicare/screens/profile_page.dart';
 import 'package:tagtime_medicare/screens/register_page.dart';
 import 'package:tagtime_medicare/screens/splash_screen.dart';
+import 'package:tagtime_medicare/screens/term_con.dart';
 import 'package:tagtime_medicare/screens/welcome.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
@@ -205,6 +206,7 @@ class MyApp extends StatelessWidget {
               '/profile': (context) => ProfilePage(),
               '/adminpage': (context) => AdminPage(),
               '/assignpage': (context) => AssignPage(),
+              '/term': (context) => TermsAndConditionsPage(),
             },
           ),
         );
