@@ -186,7 +186,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                 const SizedBox(height: 10),
                 Center(
                   child: Text(
-                    'Welcome, ${widget.firstName}',
+                    'ยินดีต้อนรับ, ${widget.firstName}',
                     style: const TextStyle(
                       fontSize: 30,
                       fontWeight: FontWeight.w600,
@@ -207,7 +207,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                 if (scannedUID == null) ...[
                   const Center(
                     child: Text(
-                      'Place your',
+                      'วางยา',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w500,
@@ -218,7 +218,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                   ),
                   const Center(
                     child: Text(
-                      'medicine',
+                      'ของคุณ',
                       style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
@@ -325,7 +325,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
               )
             else
               const Text(
-                'Cannot read RFID or no UID found.',
+                'ไม่สามารถอ่าน RFID ได้ หรือไม่พบ UID',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.red,
@@ -353,7 +353,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
               ),
               child: const Text(
-                "Use Without RFID",
+                "ใช้งานโดยไม่ต้องใช้ RFID",
                 style: TextStyle(fontSize: 20, color: Colors.white),
               ),
             ),
@@ -379,7 +379,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                     const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
               child: const Text(
-                'ASSIGN MEDICINE',
+                'เพิ่มยา',
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.white,

@@ -100,7 +100,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
       backgroundColor: const Color(0xFFFEF4E0),
       appBar: AppBar(
         title: const Text(
-          'Caregivers',
+          'ผู้ดูแล',
           style: TextStyle(
             color: Color(0xFFC76355),
             fontSize: 24,
@@ -129,7 +129,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No caregivers added yet',
+                        'ไม่พบผู้ดูเเล',
                         style: TextStyle(
                           fontSize: 18,
                           color: Color(0xFFC76355).withOpacity(0.8),
@@ -272,7 +272,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
         return AlertDialog(
           backgroundColor: const Color(0xFFFEF4E0),
           title: const Text(
-            'Add Caregiver',
+            'เพิ่ม ผู้ดูแล',
             style: TextStyle(
               color: Color(0xFFC76355),
               fontSize: 22,
@@ -286,7 +286,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Name',
+                    labelText: 'ชื่อ',
                     labelStyle: TextStyle(color: Color(0xFFC76355)),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFFC76355)),
@@ -297,7 +297,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 TextField(
                   controller: contactController,
                   decoration: const InputDecoration(
-                    labelText: 'Contact',
+                    labelText: 'เบอร์ที่ติดต่อ',
                     labelStyle: TextStyle(color: Color(0xFFC76355)),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFFC76355)),
@@ -308,7 +308,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 TextField(
                   controller: relationshipController,
                   decoration: const InputDecoration(
-                    labelText: 'Relationship',
+                    labelText: 'ความสัมพันธ์',
                     labelStyle: TextStyle(color: Color(0xFFC76355)),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFFC76355)),
@@ -322,7 +322,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
-                'Cancel',
+                'ยกเลิก',
                 style: TextStyle(color: Colors.grey),
               ),
             ),
@@ -347,7 +347,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 }
               },
               child: const Text(
-                'Add',
+                'เพิ่ม',
                 style: TextStyle(
                   color: Color(0xFFC76355),
                   fontWeight: FontWeight.bold,
@@ -372,7 +372,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
         return AlertDialog(
           backgroundColor: const Color(0xFFFEF4E0),
           title: const Text(
-            'Edit Caregiver',
+            'เเก้ไข ผู้ดูเเล',
             style: TextStyle(
               color: Color(0xFFC76355),
               fontSize: 22,
@@ -386,7 +386,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 TextField(
                   controller: nameController,
                   decoration: const InputDecoration(
-                    labelText: 'Name',
+                    labelText: 'ชื่อ',
                     labelStyle: TextStyle(color: Color(0xFFC76355)),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFFC76355)),
@@ -397,7 +397,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 TextField(
                   controller: contactController,
                   decoration: const InputDecoration(
-                    labelText: 'Contact',
+                    labelText: 'เบอร์ที่ติดต่อ',
                     labelStyle: TextStyle(color: Color(0xFFC76355)),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFFC76355)),
@@ -408,7 +408,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 TextField(
                   controller: relationshipController,
                   decoration: const InputDecoration(
-                    labelText: 'Relationship',
+                    labelText: 'ความสัมพันธ์',
                     labelStyle: TextStyle(color: Color(0xFFC76355)),
                     focusedBorder: UnderlineInputBorder(
                       borderSide: BorderSide(color: Color(0xFFC76355)),
@@ -422,7 +422,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
-                'Cancel',
+                'ยกเลิก',
                 style: TextStyle(color: Colors.grey),
               ),
             ),
@@ -448,7 +448,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 }
               },
               child: const Text(
-                'Save',
+                'เเก้ไข',
                 style: TextStyle(
                   color: Color(0xFFC76355),
                   fontWeight: FontWeight.bold,
@@ -469,7 +469,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
         return AlertDialog(
           backgroundColor: const Color(0xFFFEF4E0),
           title: const Text(
-            'Delete Caregiver',
+            'ลบ ผู้ดูเเล',
             style: TextStyle(
               color: Color(0xFFC76355),
               fontSize: 22,
@@ -477,14 +477,14 @@ class _CaregiverPageState extends State<CaregiverPage> {
             ),
           ),
           content: const Text(
-            'Are you sure you want to delete this caregiver?',
+            'ต้องการที่จะลบผู้ดูเเลคนนี้หรือไม่?',
             style: TextStyle(color: Colors.grey),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: const Text(
-                'Cancel',
+                'ยกเลิก',
                 style: TextStyle(color: Colors.grey),
               ),
             ),
@@ -494,7 +494,7 @@ class _CaregiverPageState extends State<CaregiverPage> {
                 Navigator.pop(context);
               },
               child: const Text(
-                'Delete',
+                'ลบ',
                 style: TextStyle(
                   color: Colors.red,
                   fontWeight: FontWeight.bold,

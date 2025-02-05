@@ -345,8 +345,8 @@ class _SummaryPageState extends State<SummaryPage>
           labelStyle:
               const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           tabs: const [
-            Tab(text: 'Current Medicines'),
-            Tab(text: 'Summary'),
+            Tab(text: 'ยาของฉัน'),
+            Tab(text: 'ผลสรุป'),
           ],
         ),
       ),
@@ -365,13 +365,13 @@ class _SummaryPageState extends State<SummaryPage>
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Column(
         children: [
-          _buildTitle("Daily Intake (Last 7 Days)"),
+          _buildTitle("การรับประทานยา (7 วันที่ผ่านมา)"),
           const SizedBox(height: 10),
           SizedBox(height: 200, child: _buildIntakeBarChart()),
           const SizedBox(height: 20),
           _buildExportSection(),
           const SizedBox(height: 20),
-          _buildTitle("Medication Distribution"),
+          _buildTitle("การกระจายของยา"),
           const SizedBox(height: 10),
           Expanded(child: _buildTypePieChart()),
         ],
@@ -389,7 +389,7 @@ class _SummaryPageState extends State<SummaryPage>
             icon: const Icon(Icons.calendar_month, color: Color(0xFFC76355)),
             label: Text(
               selectedMonth == null
-                  ? 'Select Month'
+                  ? 'เลือกเดือน'
                   : DateFormat('MMMM yyyy').format(selectedMonth!),
               style: const TextStyle(color: Color(0xFFC76355)),
             ),
@@ -416,7 +416,7 @@ class _SummaryPageState extends State<SummaryPage>
                   )
                 : const Icon(Icons.download, color: Colors.white),
             label: Text(
-              isGeneratingReport ? 'Generating...' : 'Export Report',
+              isGeneratingReport ? 'Generating...' : 'ดูรายงานของการกินยา',
               style: const TextStyle(color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
@@ -551,7 +551,7 @@ class _SummaryPageState extends State<SummaryPage>
                 // อยู่ในช่วง startDate ถึง endDate
                 final remainingDays = endDate.difference(now).inDays;
                 final remainingHours = endDate.difference(now).inHours % 24;
-                statusText = '$remainingDays days $remainingHours hours left';
+                statusText = 'เหลือเวลา $remainingDays วัน $remainingHours ชั่วโมง';
                 statusColor = Colors.green;
               }
 
@@ -612,7 +612,7 @@ class _SummaryPageState extends State<SummaryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Frequency: ${med['Frequency']}',
+                              'จำนวณการกิน: ${med['Frequency']}',
                               style: const TextStyle(
                                 fontSize: 20,
                                 color: Color(0xFFC76355),
@@ -620,7 +620,7 @@ class _SummaryPageState extends State<SummaryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Times: ${time.join(', ')}',
+                              'เวลา: ${time.join(', ')}',
                               style: const TextStyle(
                                 fontSize: 20,
                                 color: Colors.black,
@@ -628,7 +628,7 @@ class _SummaryPageState extends State<SummaryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Dates: $formattedStartDate to $formattedEndDate',
+                              'วัน: $formattedStartDate to $formattedEndDate',
                               style: const TextStyle(
                                 fontSize: 20,
                                 color: Colors.grey,
@@ -636,7 +636,7 @@ class _SummaryPageState extends State<SummaryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Assigned by: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
+                              'จ่ายยาโดย: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey,
@@ -948,7 +948,7 @@ class _SummaryPageState extends State<SummaryPage>
                           color: Colors.green.withOpacity(0.8),
                         ),
                         const SizedBox(width: 4),
-                        const Text('On Time'),
+                        const Text('ตรงเวลา'),
                         const SizedBox(width: 16),
                         Container(
                           width: 16,
@@ -956,7 +956,7 @@ class _SummaryPageState extends State<SummaryPage>
                           color: Colors.red.withOpacity(0.8),
                         ),
                         const SizedBox(width: 4),
-                        const Text('Late'),
+                        const Text('ล่าช้า'),
                         const SizedBox(width: 16),
                         Container(
                           width: 16,
@@ -964,7 +964,7 @@ class _SummaryPageState extends State<SummaryPage>
                           color: Colors.orange.withOpacity(0.8),
                         ),
                         const SizedBox(width: 4),
-                        const Text('Skip'),
+                        const Text('ลืมกิน'),
                       ],
                     ),
                   ),
@@ -973,7 +973,7 @@ class _SummaryPageState extends State<SummaryPage>
                   Padding(
                     padding: const EdgeInsets.only(bottom: 16.0),
                     child: Text(
-                      'Showing data for: $selectedMedicine',
+                      'เเสดงข้อมูลของยา: $selectedMedicine',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -1206,7 +1206,7 @@ class _SummaryPageState extends State<SummaryPage>
             return AlertDialog(
               backgroundColor: const Color(0xFFFEF4E0),
               title: const Text(
-                'Edit Medication',
+                'เเก้ไข การกินยา',
                 style: TextStyle(color: Color(0xFFC76355)),
               ),
               content: SingleChildScrollView(
@@ -1215,13 +1215,13 @@ class _SummaryPageState extends State<SummaryPage>
                   children: [
                     TextField(
                       controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Name'),
+                      decoration: const InputDecoration(labelText: 'ชื่อยา'),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: propertiesController,
                       decoration:
-                          const InputDecoration(labelText: 'Properties'),
+                          const InputDecoration(labelText: 'คุณสมบัติ'),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(
@@ -1257,7 +1257,7 @@ class _SummaryPageState extends State<SummaryPage>
                     Row(
                       children: [
                         const Text(
-                          'Frequency:',
+                          'จำนวณครั้ง:',
                           style: TextStyle(color: Color(0xFFC76355)),
                         ),
                         const SizedBox(width: 10),
@@ -1306,7 +1306,7 @@ class _SummaryPageState extends State<SummaryPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Notification Times:',
+                          'เวลาเเจ้งเตือนการกินยา:',
                           style: TextStyle(color: Color(0xFFC76355)),
                         ),
                         const SizedBox(height: 10),
@@ -1350,7 +1350,7 @@ class _SummaryPageState extends State<SummaryPage>
                     Navigator.pop(context);
                   },
                   child: const Text(
-                    'Cancel',
+                    'ยกเลิก',
                     style: TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -1393,7 +1393,7 @@ class _SummaryPageState extends State<SummaryPage>
                     backgroundColor: const Color(0xFFC76355),
                   ),
                   child: const Text(
-                    'Save',
+                    'บันทึก',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),

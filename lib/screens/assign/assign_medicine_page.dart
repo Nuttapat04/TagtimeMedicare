@@ -244,7 +244,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
             TextField(
               controller: nameController,
               decoration: const InputDecoration(
-                labelText: 'Medicine Name *',
+                labelText: 'ชื่อ ยา *',
                 border: OutlineInputBorder(),
                 labelStyle: TextStyle(color: Color(0xFFC76355)),
               ),
@@ -254,7 +254,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
             TextField(
               controller: propertiesController,
               decoration: const InputDecoration(
-                labelText: 'Properties *',
+                labelText: 'คุณสมบัติ *',
                 border: OutlineInputBorder(),
                 labelStyle: TextStyle(color: Color(0xFFC76355)),
               ),
@@ -265,7 +265,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
             ElevatedButton(
               onPressed: selectDateRange,
               child: Text(
-                'Select Date Range *: ${startDate != null && endDate != null ? '${startDate!.toLocal().toString().split(' ')[0]} to ${endDate!.toLocal().toString().split(' ')[0]}' : 'Select Dates'}',
+                'โปรดเลือกระยะเวลา *: ${startDate != null && endDate != null ? '${startDate!.toLocal().toString().split(' ')[0]} to ${endDate!.toLocal().toString().split(' ')[0]}' : 'เลือก วัน'}',
                 style: const TextStyle(color: Colors.white),
               ),
               style: ElevatedButton.styleFrom(
@@ -277,7 +277,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
             Row(
               children: [
                 const Text(
-                  'Frequency: ',
+                  'จำนวณครั้งต่อวัน: ',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -289,7 +289,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
                   items: List.generate(4, (index) {
                     return DropdownMenuItem<int>(
                       value: index + 1,
-                      child: Text('${index + 1} times/day'),
+                      child: Text('${index + 1} ครั้ง/วัน'),
                     );
                   }),
                   onChanged: (value) {
@@ -309,7 +309,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
                 itemCount: notificationTimes.length,
                 itemBuilder: (context, index) {
                   return ListTile(
-                    title: Text('Time ${index + 1}'),
+                    title: Text('ครั้งที่ ${index + 1}'),
                     trailing: ElevatedButton(
                       onPressed: () async {
                         final TimeOfDay? pickedTime = await showTimePicker(
@@ -349,7 +349,7 @@ class _AssignMedicinePageState extends State<AssignMedicinePage> {
                     minimumSize: const Size(200, 50),
                   ),
                   child: const Text(
-                    'Save Medication',
+                    'บันทึก การจ่ายยา',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 16,

@@ -99,7 +99,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
 
             // แสดงข้อมูล Assign Type
             Text(
-              'Assign Type: ${widget.assignType}',
+              'ประเภทการจ่ายยา: ${widget.assignType}',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -111,7 +111,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
             if (widget.caregiverName != null) ...[
               const SizedBox(height: 10),
               Text(
-                'Caregiver: ${widget.caregiverName}',
+                'ผู้ดูเเล: ${widget.caregiverName}',
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -172,7 +172,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
                     ),
                     label: const Text(
-                      'NEXT',
+                      'ถัดไป',
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.white,
@@ -183,7 +183,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
               )
             else
               const Text(
-                'Select an option to begin',
+                'เลือกตัวเลือกเพื่อเริ่มต้น',
                 style: TextStyle(
                   fontSize: 18,
                   color: Color(0xFFC76355),
@@ -204,7 +204,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
               label: const Text(
-                'USE SIMULATED UID',
+                'ใช้ UID จำลอง',
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.white,
@@ -225,7 +225,7 @@ class _AssignRFIDPageState extends State<AssignRFIDPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
               label: const Text(
-                'SCAN RFID',
+                'สแกน RFID',
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.white,

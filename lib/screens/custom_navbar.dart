@@ -19,19 +19,19 @@ class CustomBottomNavBar extends StatelessWidget {
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home),
-          label: 'Home',
+          label: 'หน้าหลัก',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.bar_chart),
-          label: 'Summary',
+          label: 'สรุป',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.history),
-          label: 'History',
+          label: 'ประวัติ',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person),
-          label: 'Profile',
+          label: 'โปรไฟล์',
         ),
       ],
       backgroundColor: Color(0xFFFFF4E0),

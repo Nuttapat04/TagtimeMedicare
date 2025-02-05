@@ -243,25 +243,25 @@ Future<void> _changeProfileImage() async {
                       children: [
                         buildMenuTile(
                           icon: Icons.settings,
-                          title: 'Edit Information',
+                          title: 'เเก้ไขข้อมูล',
                           onTap: () => Navigator.pushNamed(context, '/edit-information'),
                         ),
                         const Divider(height: 1),
                         buildMenuTile(
                           icon: Icons.support_agent,
-                          title: 'Customer Support',
+                          title: 'ฝ่ายสนับสนุนลูกค้า',
                           onTap: () => Navigator.pushNamed(context, '/customer-support'),
                         ),
                         const Divider(height: 1),
                         buildMenuTile(
                           icon: Icons.accessibility_new,
-                          title: 'Caregiver',
+                          title: 'ผู้ดูแล',
                           onTap: () => Navigator.pushNamed(context, '/caregiver'),
                         ),
                         const Divider(height: 1),
                         buildMenuTile(
                           icon: Icons.logout,
-                          title: 'Logout',
+                          title: 'ออกจากระบบ',
                           onTap: () => showLogoutConfirmation(context),
                         ),
                       ],

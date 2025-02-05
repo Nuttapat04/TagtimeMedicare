@@ -59,7 +59,7 @@ class _SelectCaregiverPageState extends State<SelectCaregiverPage> {
       backgroundColor: const Color(0xFFFEF4E0),
       appBar: AppBar(
         title: const Text(
-          'Select Caregiver',
+          'เลือกผู้ดูเเล',
           style: TextStyle(
             color: Color(0xFFC76355),
             fontSize: 24,

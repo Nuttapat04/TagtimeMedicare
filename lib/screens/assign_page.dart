@@ -45,7 +45,7 @@ class AssignPage extends StatelessWidget {
           ),
           const SizedBox(height: 50),
           const Text(
-            'Select',
+            'โปรดเลือก',
             style: TextStyle(
               fontSize: 36,
               fontWeight: FontWeight.bold,
@@ -78,7 +78,7 @@ class AssignPage extends StatelessWidget {
                         horizontal: 50, vertical: 15),
                   ),
                   child: const Text(
-                    'BY PHARMACIST',
+                    'โดย เภสัชกร',
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.white,
@@ -105,7 +105,7 @@ class AssignPage extends StatelessWidget {
                         horizontal: 60, vertical: 15),
                   ),
                   child: const Text(
-                    'BY CAREGIVER',
+                    'โดย ผู้ดูแล',
                     style: TextStyle(
                       fontSize: 18,
                       color: Colors.white,

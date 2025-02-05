@@ -38,7 +38,7 @@ class _HistoryPageState extends State<HistoryPage>
         automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFFFEF4E0),
         title: const Text(
-          "Your Medication History",
+          "ประวัติยาของคุณ",
           style: TextStyle(color: Color(0xFFC76355)),
         ),
         centerTitle: true,
@@ -56,8 +56,8 @@ class _HistoryPageState extends State<HistoryPage>
             labelStyle:
                 const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             tabs: const [
-              Tab(text: 'History List'),
-              Tab(text: 'History'),
+              Tab(text: 'รายการยา'),
+              Tab(text: 'ประวัติ'),
             ],
           ),
           Expanded(
@@ -182,7 +182,7 @@ class _HistoryPageState extends State<HistoryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Frequency: $frequency',
+                              'จำนวณครั้ง: $frequency',
                               style: const TextStyle(
                                 fontSize: 20,
                                 color: Color(0xFFC76355),
@@ -190,7 +190,7 @@ class _HistoryPageState extends State<HistoryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Times: ${time.join(', ')}',
+                              'เวลา: ${time.join(', ')}',
                               style: const TextStyle(
                                 fontSize: 20,
                                 color: Colors.black,
@@ -198,7 +198,7 @@ class _HistoryPageState extends State<HistoryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Dates: $formattedStartDate to $formattedEndDate',
+                              'วันที่: $formattedStartDate to $formattedEndDate',
                               style: const TextStyle(
                                 fontSize: 20,
                                 color: Colors.grey,
@@ -206,7 +206,7 @@ class _HistoryPageState extends State<HistoryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Assigned by: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
+                              'จ่ายยาโดย: ${assignedBy}${med['Caregiver_name'] != null && assignedBy == 'Caregiver' ? ' (${med['Caregiver_name']})' : ''}',
                               style: const TextStyle(
                                 fontSize: 18,
                                 color: Colors.grey,
