@@ -29,6 +29,67 @@ class _EditInformationPageState extends State<EditInformationPage> {
     fetchUserData();
   }
 
+  Future<void> _deleteAccount() async {
+    // Show confirmation dialog
+    bool confirmDelete = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('ยืนยันการลบบัญชี'),
+          content: const Text(
+            'คุณแน่ใจหรือไม่ที่จะลบบัญชีนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('ยกเลิก'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              child: const Text('ลบบัญชี'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmDelete == true) {
+      try {
+        final user = _auth.currentUser;
+        if (user != null) {
+          // Delete user data from Firestore
+          await FirebaseFirestore.instance
+              .collection('Users')
+              .doc(user.uid)
+              .delete();
+
+          // Delete user account
+          await user.delete();
+
+          // Navigate to login or home screen after successful deletion
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/login', // Replace with your login route name
+            (Route<dynamic> route) => false,
+          );
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('บัญชีถูกลบเรียบร้อยแล้ว')),
+          );
+        }
+      } catch (e) {
+        print('Error deleting account: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ไม่สามารถลบบัญชีได้ กรุณาลองใหม่อีกครั้ง')),
+        );
+      }
+    }
+  }
+
   Future<void> fetchUserData() async {
     try {
       final user = _auth.currentUser;
@@ -320,8 +381,21 @@ class _EditInformationPageState extends State<EditInformationPage> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text(
-                        'Save Changes',
+                        'บันทึก',
                         style: TextStyle(fontSize: 18, color: Colors.white),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    OutlinedButton(
+                      onPressed: _deleteAccount,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text(
+                        'ลบบัญชี',
+                        style: TextStyle(fontSize: 18),
                       ),
                     ),
                   ],

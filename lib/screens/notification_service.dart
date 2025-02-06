@@ -273,7 +273,6 @@ Future<void> _checkAndRecordSkip({
   void listenToMedicationChanges(String userId) {
   print('🔍 Listening for medication changes for User ID: $userId');
 
-  checkAndRecordSkippedMedications(userId);
   
   // สร้าง Timer สำหรับเช็คยาที่ไม่ได้ทาน ทุก 1 ชั่วโมง
   Timer.periodic(Duration(hours: 1), (timer) {

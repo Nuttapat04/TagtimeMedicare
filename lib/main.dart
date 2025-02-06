@@ -39,6 +39,11 @@ void main() async {
         try {
           if (Firebase.apps.isEmpty) {
             await Firebase.initializeApp();
+            // เพิ่มส่วนนี้
+        FirebaseFirestore.instance.settings = const Settings(
+          persistenceEnabled: true,
+          cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED
+        );
             firebaseInitialized = true;
             print('✅ Firebase initialized successfully');
           }

@@ -136,16 +136,16 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
 
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('Medication_history')
-        .where('User_id', isEqualTo: userId)
-        .where('RFID_tag', isEqualTo: rfidTag)
-        .where('Medication_id', isEqualTo: medicationId)
-        .where('AutoSave', isEqualTo: false)
-        .where('Scheduled_time', isEqualTo: time)
-        .where('Date', isEqualTo: today)
-        .where('mark', isEqualTo: true) // ✅ เพิ่มการเช็ค mark
-        .get();
+     QuerySnapshot snapshot = await FirebaseFirestore.instance
+      .collection('Medication_history')
+      .where('User_id', isEqualTo: userId)
+      .where('RFID_tag', isEqualTo: rfidTag)
+      .where('Medication_id', isEqualTo: medicationId)
+      .where('Scheduled_time', isEqualTo: time)
+      .where('Date', isEqualTo: today)
+      .where('mark', isEqualTo: true)
+      .where('AutoSave', isEqualTo: false) 
+      .get();
 
     return snapshot.docs.isNotEmpty;
   }
