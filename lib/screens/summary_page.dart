@@ -331,8 +331,9 @@ class _SummaryPageState extends State<SummaryPage>
         automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFFFEF4E0),
         title: const Text(
-          "Summary",
-          style: TextStyle(color: Color(0xFFC76355)),
+          "สรุปการใช้ยา",
+          style: TextStyle(color: Color(0xFFC76355),
+          fontWeight: FontWeight.bold,),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xFFC76355)),
@@ -371,7 +372,7 @@ class _SummaryPageState extends State<SummaryPage>
           const SizedBox(height: 20),
           _buildExportSection(),
           const SizedBox(height: 20),
-          _buildTitle("การกระจายของยา"),
+          _buildTitle("ขื่อยาที่มีอยู่"),
           const SizedBox(height: 10),
           Expanded(child: _buildTypePieChart()),
         ],
@@ -472,7 +473,7 @@ class _SummaryPageState extends State<SummaryPage>
           if (medications.isEmpty) {
             return const Center(
               child: Text(
-                'No medications found',
+                'ไม่พบข้อมูลยา',
                 style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
               ),
             );
@@ -511,7 +512,7 @@ class _SummaryPageState extends State<SummaryPage>
           if (filteredMedications.isEmpty) {
             return const Center(
               child: Text(
-                'No active medications',
+                'ไม่พบข้อมูลยา',
                 style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
               ),
             );
@@ -551,7 +552,8 @@ class _SummaryPageState extends State<SummaryPage>
                 // อยู่ในช่วง startDate ถึง endDate
                 final remainingDays = endDate.difference(now).inDays;
                 final remainingHours = endDate.difference(now).inHours % 24;
-                statusText = 'เหลือเวลา $remainingDays วัน $remainingHours ชั่วโมง';
+                statusText =
+                    'เหลือเวลา $remainingDays วัน $remainingHours ชั่วโมง';
                 statusColor = Colors.green;
               }
 
@@ -628,7 +630,7 @@ class _SummaryPageState extends State<SummaryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'วัน: $formattedStartDate to $formattedEndDate',
+                              'วันที่: $formattedStartDate ถึง $formattedEndDate',
                               style: const TextStyle(
                                 fontSize: 20,
                                 color: Colors.grey,
@@ -1001,38 +1003,37 @@ class _SummaryPageState extends State<SummaryPage>
                               ),
                               titlesData: FlTitlesData(
                                 leftTitles: AxisTitles(
-  axisNameWidget: Column(
-    children: [
-      const Text(
-        'จำนวนครั้ง', 
-        style: TextStyle(
-          color: Color(0xFFC76355),
-          fontSize: 14, 
-          fontWeight: FontWeight.bold,
-        ),
-        textAlign: TextAlign.center,
-      ),
-      const SizedBox(height: 12), 
-    ],
-  ),
-  sideTitles: SideTitles(
-    reservedSize: 45,
-    showTitles: true,
-    getTitlesWidget: (value, meta) {
-      return Padding(
-        padding: const EdgeInsets.only(left: 8), 
-        child: Text(
-          value.toInt().toString(),
-          style: const TextStyle(
-            color: Color(0xFF666666),
-            fontSize: 12,
-          ),
-        ),
-      );
-    },
-  ),
-),
-
+                                  axisNameWidget: Column(
+                                    children: [
+                                      const Text(
+                                        'จำนวนครั้ง',
+                                        style: TextStyle(
+                                          color: Color(0xFFC76355),
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      const SizedBox(height: 12),
+                                    ],
+                                  ),
+                                  sideTitles: SideTitles(
+                                    reservedSize: 45,
+                                    showTitles: true,
+                                    getTitlesWidget: (value, meta) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(left: 8),
+                                        child: Text(
+                                          value.toInt().toString(),
+                                          style: const TextStyle(
+                                            color: Color(0xFF666666),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
                                 rightTitles: AxisTitles(
                                     sideTitles: SideTitles(showTitles: false)),
                                 topTitles: AxisTitles(
@@ -1220,8 +1221,7 @@ class _SummaryPageState extends State<SummaryPage>
                     const SizedBox(height: 16),
                     TextField(
                       controller: propertiesController,
-                      decoration:
-                          const InputDecoration(labelText: 'คุณสมบัติ'),
+                      decoration: const InputDecoration(labelText: 'คุณสมบัติ'),
                     ),
                     const SizedBox(height: 16),
                     ElevatedButton(

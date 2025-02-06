@@ -39,7 +39,8 @@ class _HistoryPageState extends State<HistoryPage>
         backgroundColor: const Color(0xFFFEF4E0),
         title: const Text(
           "ประวัติยาของคุณ",
-          style: TextStyle(color: Color(0xFFC76355)),
+          style: TextStyle(color: Color(0xFFC76355),
+          fontWeight: FontWeight.bold,),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xFFC76355)),
@@ -95,7 +96,7 @@ class _HistoryPageState extends State<HistoryPage>
           if (medications.isEmpty) {
             return const Center(
               child: Text(
-                'No medications found',
+                'ไม่พบข้อมูลยา',
                 style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
               ),
             );
@@ -129,7 +130,7 @@ class _HistoryPageState extends State<HistoryPage>
                       });
                     },
                     child: const Text(
-                      'See More',
+                      'ดูเพิ่มเติม',
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.white,
@@ -198,7 +199,7 @@ class _HistoryPageState extends State<HistoryPage>
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'วันที่: $formattedStartDate to $formattedEndDate',
+                              'วันที่: $formattedStartDate ถึง $formattedEndDate',
                               style: const TextStyle(
                                 fontSize: 20,
                                 color: Colors.grey,

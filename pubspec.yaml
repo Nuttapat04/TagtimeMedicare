@@ -79,7 +79,17 @@ flutter:
     - images/google_logo.png
 
   fonts:
-    - family: Poly
+    - family: SukhumvitSet
       fonts:
-        - asset: fonts/Poly-Regular.ttf
-        - asset: fonts/Poly-Italic.ttf
+        - asset: fonts/SukhumvitSet-Bold.ttf
+          weight: 700
+        - asset: fonts/SukhumvitSet-SemiBold.ttf
+          weight: 600
+        - asset: fonts/SukhumvitSet-Medium.ttf
+          weight: 500
+        - asset: fonts/SukhumvitSet-Text.ttf
+          weight: 400
+        - asset: fonts/SukhumvitSet-Light.ttf
+          weight: 300
+        - asset: fonts/SukhumvitSet-Thin.ttf
+          weight: 100

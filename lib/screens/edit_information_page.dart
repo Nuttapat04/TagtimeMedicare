@@ -140,7 +140,7 @@ class _EditInformationPageState extends State<EditInformationPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          'Edit Information',
+          'แก้ไขข้อมูล',
           style: TextStyle(
             color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,

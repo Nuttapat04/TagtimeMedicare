@@ -61,6 +61,8 @@ class NotificationService {
     print('✅ NotificationService initialized');
   }
 
+  
+
   void _handleNotificationClick(String? payload) async {
     print('🔔 Notification clicked with payload: $payload');
 
@@ -217,7 +219,6 @@ Future<void> _checkAndRecordSkip({
   required String medicationId,
   required String scheduledTime,
 }) async {
-  // รับวันที่ปัจจุบัน
   final today = DateTime.now();
   final formattedDate = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
   
@@ -237,23 +238,24 @@ Future<void> _checkAndRecordSkip({
     print('⏳ ยังไม่ถึงเวลาบันทึก Skip สำหรับ $scheduledTime');
     return;
   }
-  
-  // ตรวจสอบว่ามีการบันทึกไปแล้วหรือไม่
+
+  // สร้าง compound query เพื่อค้นหาประวัติการทานยาที่ตรงกับเงื่อนไขทั้งหมด
   final existingRecord = await FirebaseFirestore.instance
       .collection('Medication_history')
       .where('User_id', isEqualTo: userId)
       .where('RFID_tag', isEqualTo: rfidTag)
       .where('Medication_id', isEqualTo: medicationId)
-      .where('Scheduled_time', isEqualTo: scheduledTime)
       .where('Date', isEqualTo: formattedDate)
+      .where('Scheduled_time', isEqualTo: scheduledTime)
+      .limit(1) // เพิ่ม limit เพื่อประสิทธิภาพ
       .get();
-      
+
   if (existingRecord.docs.isNotEmpty) {
     print('✅ มีการบันทึกข้อมูลแล้วสำหรับ $scheduledTime');
     return;
   }
-  
-  // บันทึกเป็น Skip
+
+  // ถ้ายังไม่มีการบันทึก จึงทำการบันทึก Skip
   print('⚠️ บันทึก Skip สำหรับ $scheduledTime');
   await FirebaseFirestore.instance.collection('Medication_history').add({
     'User_id': userId,
@@ -269,9 +271,15 @@ Future<void> _checkAndRecordSkip({
 }
 
   void listenToMedicationChanges(String userId) {
-    print('🔍 Listening for medication changes for User ID: $userId');
+  print('🔍 Listening for medication changes for User ID: $userId');
 
   checkAndRecordSkippedMedications(userId);
+  
+  // สร้าง Timer สำหรับเช็คยาที่ไม่ได้ทาน ทุก 1 ชั่วโมง
+  Timer.periodic(Duration(hours: 1), (timer) {
+    checkAndRecordSkippedMedications(userId);
+  });
+  
 
     FirebaseFirestore.instance
         .collection('Medications')

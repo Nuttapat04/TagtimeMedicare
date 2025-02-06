@@ -6,7 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'; 
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:month_year_picker/month_year_picker.dart';
 import 'package:tagtime_medicare/screens/Caregiver_screen.dart';
@@ -25,7 +25,6 @@ import 'package:tagtime_medicare/screens/welcome.dart';
 import 'package:timezone/data/latest.dart' as tz;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -125,7 +124,7 @@ class MyApp extends StatelessWidget {
             navigatorKey: navigatorKey,
             debugShowCheckedModeBanner: false,
             title: 'Tagtime Medicare',
-            
+
             // Add localization support
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
@@ -135,9 +134,10 @@ class MyApp extends StatelessWidget {
             ],
             supportedLocales: const [
               Locale('en', 'US'),
+              Locale('th', 'TH'), // เพิ่มภาษาไทย
             ],
-            locale: const Locale('en', 'US'),
-            
+            locale: const Locale('th', 'TH'), // ตั้งค่าภาษาเริ่มต้นเป็นไทย
+
             builder: (context, child) {
               return StreamBuilder<ConnectivityResult>(
                 stream: Connectivity().onConnectivityChanged,
@@ -145,7 +145,8 @@ class MyApp extends StatelessWidget {
                   return Stack(
                     children: [
                       MediaQuery(
-                        data: MediaQuery.of(context).copyWith(textScaleFactor: 1.0),
+                        data: MediaQuery.of(context)
+                            .copyWith(textScaleFactor: 1.0),
                         child: child!,
                       ),
                       if (snapshot.data == ConnectivityResult.none)
@@ -156,11 +157,13 @@ class MyApp extends StatelessWidget {
                           child: Material(
                             child: Container(
                               color: Colors.red,
-                              padding: EdgeInsets.symmetric(vertical: 8.h, horizontal: 8.w),
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 8.h, horizontal: 8.w),
                               child: Text(
                                 'Offline Mode - Please check your connection',
                                 textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white, fontSize: 14.sp),
+                                style: TextStyle(
+                                    color: Colors.white, fontSize: 14.sp),
                               ),
                             ),
                           ),
@@ -171,28 +174,36 @@ class MyApp extends StatelessWidget {
               );
             },
             theme: ThemeData(
-              textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
-              primaryColor: const Color(0xFF763355),
-              appBarTheme: AppBarTheme(
-                backgroundColor: const Color(0xFFFFF4E0),
-                titleTextStyle: GoogleFonts.poppins(
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white
-                ),
-              ),
+              fontFamily: 'SukhumvitSet',
+              textTheme: Theme.of(context).textTheme.apply(
+                    fontFamily: 'SukhumvitSet',
+                  ),
               elevatedButtonTheme: ElevatedButtonThemeData(
                 style: ElevatedButton.styleFrom(
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.r)
+                    borderRadius: BorderRadius.circular(10.r),
                   ),
-                  textStyle: GoogleFonts.poppins(
+                  textStyle: TextStyle(
                     fontSize: 16.sp,
-                    fontWeight: FontWeight.w500
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'SukhumvitSet', // เพิ่มตรงนี้
                   ),
                 ),
               ),
+              tabBarTheme: TabBarTheme(
+                labelStyle: TextStyle(
+                  fontFamily: 'SukhumvitSet', // เพิ่มตรงนี้
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+                unselectedLabelStyle: TextStyle(
+                  fontFamily: 'SukhumvitSet', // เพิ่มตรงนี้
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.normal,
+                ),
+              ),
             ),
+
             home: const AuthWrapper(),
             routes: {
               '/login': (context) => LoginPage(),
@@ -255,8 +266,7 @@ class AuthWrapper extends StatelessWidget {
                           Navigator.pushReplacement(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const AuthWrapper()
-                            ),
+                                builder: (context) => const AuthWrapper()),
                           );
                         },
                         child: const Text('Try Again'),

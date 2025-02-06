@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 
 void main() {
   runApp(MaterialApp(
@@ -14,10 +16,8 @@ class AdminPage extends StatefulWidget {
 
 class _AdminPageState extends State<AdminPage> {
   final TextEditingController searchController = TextEditingController();
-
   List<Map<String, dynamic>> users = [];
   List<Map<String, dynamic>> filteredUsers = [];
-  List<Map<String, dynamic>> selectedUsers = [];
 
   @override
   void initState() {
@@ -31,13 +31,12 @@ class _AdminPageState extends State<AdminPage> {
       QuerySnapshot snapshot =
           await FirebaseFirestore.instance.collection('Users').get();
       setState(() {
-        users = snapshot.docs
-            .map((doc) => {
-                  'id': doc.id,
-                  'name': doc['Name'] ?? 'Unknown',
-                  'email': doc['Email'] ?? 'No Email',
-                })
-            .toList();
+        users = snapshot.docs.map((doc) => {
+          'id': doc.id,
+          'name': doc['Name'] ?? 'Unknown',
+          'email': doc['Email'] ?? 'No Email',
+          'created_at': (doc['Created_at'] as Timestamp?)?.toDate(),
+        }).toList();
         filteredUsers = users;
       });
     } catch (e) {
@@ -45,77 +44,35 @@ class _AdminPageState extends State<AdminPage> {
     }
   }
 
-  /// 🔎 ค้นหาผู้ใช้จากอีเมล
+  /// 🔎 ค้นหาผู้ใช้
   void filterUsers(String query) {
     setState(() {
       if (query.isEmpty) {
         filteredUsers = users;
       } else {
         filteredUsers = users
-            .where((user) =>
-                user['email'].toLowerCase().contains(query.toLowerCase()))
+            .where((user) => user['email'].toLowerCase().contains(query.toLowerCase()))
             .toList();
       }
     });
-  }
-
-  /// ✅ เพิ่มผู้ใช้ในรายการที่เลือก
-  void selectUser(Map<String, dynamic> user) {
-    setState(() {
-      if (!selectedUsers.contains(user)) {
-        selectedUsers.add(user);
-      }
-    });
-  }
-
-  /// ❌ ลบผู้ใช้ออกจากรายการเลือก
-  void deselectUser(Map<String, dynamic> user) {
-    setState(() {
-      selectedUsers.remove(user);
-    });
-  }
-
-  /// 🔄 ออกจากระบบ
-  void logout() {
-    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
         backgroundColor: const Color(0xFFC76355),
         title: const Text(
           'Admin Panel',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: logout,
-            tooltip: 'Log Out',
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Manage Users',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFFC76355),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            /// 🔎 ช่องค้นหา
-            TextFormField(
+            TextField(
               controller: searchController,
               decoration: InputDecoration(
                 labelText: 'Search by email',
@@ -130,8 +87,6 @@ class _AdminPageState extends State<AdminPage> {
               onChanged: filterUsers,
             ),
             const SizedBox(height: 16),
-
-            /// 📋 รายการผู้ใช้
             Expanded(
               child: filteredUsers.isEmpty
                   ? const Center(
@@ -145,12 +100,12 @@ class _AdminPageState extends State<AdminPage> {
                       itemBuilder: (context, index) {
                         final user = filteredUsers[index];
                         return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                          margin: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12.0),
                           ),
                           elevation: 2,
-                          child: CheckboxListTile(
+                          child: ListTile(
                             title: Text(
                               user['name'],
                               style: const TextStyle(
@@ -159,70 +114,24 @@ class _AdminPageState extends State<AdminPage> {
                                 color: Color(0xFFC76355),
                               ),
                             ),
-                            subtitle: Text(
-                              user['email'],
-                              style: const TextStyle(color: Colors.black54),
-                            ),
-                            value: selectedUsers.contains(user),
-                            onChanged: (bool? selected) {
-                              if (selected == true) {
-                                selectUser(user);
-                              } else {
-                                deselectUser(user);
-                              }
+                            subtitle: Text(user['email']),
+                            trailing: const Icon(Icons.arrow_forward_ios, color: Color(0xFFC76355)),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserSummaryPage(
+                                    userId: user['id'], 
+                                    userName: user['name'], 
+                                    createdAt: user['created_at']
+                                  ),
+                                ),
+                              );
                             },
-                            activeColor: const Color(0xFFC76355),
-                            checkColor: Colors.white,
-                            controlAffinity: ListTileControlAffinity.leading,
                           ),
                         );
                       },
                     ),
-            ),
-
-            const SizedBox(height: 16),
-
-            /// 🎯 รายชื่อผู้ใช้ที่เลือก
-            if (selectedUsers.isNotEmpty) ...[
-              const Text(
-                'Selected Users:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFFC76355),
-                ),
-              ),
-              Wrap(
-                spacing: 8.0,
-                children: selectedUsers.map((user) {
-                  return Chip(
-                    label: Text(user['email']),
-                    backgroundColor: const Color(0xFFFFF4E0),
-                    labelStyle: const TextStyle(color: Color(0xFFC76355)),
-                    deleteIconColor: Colors.red,
-                    onDeleted: () {
-                      deselectUser(user);
-                    },
-                  );
-                }).toList(),
-              ),
-            ],
-
-            const SizedBox(height: 16),
-
-            /// 📋 ปุ่มดูรายชื่อผู้ใช้ทั้งหมด
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => AllUsersPage()));
-              },
-              child: const Text(
-                'View All Users',
-                style: TextStyle(fontSize: 18, color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC76355),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
             ),
           ],
         ),
@@ -231,17 +140,126 @@ class _AdminPageState extends State<AdminPage> {
   }
 }
 
-/// 📋 หน้าแสดงรายชื่อผู้ใช้ทั้งหมด
-class AllUsersPage extends StatelessWidget {
+/// ✅ **หน้าแสดง Summary ของแต่ละ User**
+class UserSummaryPage extends StatefulWidget {
+  final String userId;
+  final String userName;
+  final DateTime? createdAt;
+
+  UserSummaryPage({required this.userId, required this.userName, this.createdAt});
+
+  @override
+  _UserSummaryPageState createState() => _UserSummaryPageState();
+}
+
+class _UserSummaryPageState extends State<UserSummaryPage> {
+  Map<String, int> monthlySummary = {};
+  List<Map<String, dynamic>> medications = [];
+  List<Map<String, dynamic>> caregivers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUserSummary();
+    fetchMedications();
+    fetchCaregivers();
+  }
+
+  /// 📊 ดึงข้อมูลสรุปการใช้ยาแบบรายเดือน
+  Future<void> fetchUserSummary() async {
+    try {
+      QuerySnapshot historySnapshot = await FirebaseFirestore.instance
+          .collection('Medication_history')
+          .where('User_id', isEqualTo: widget.userId)
+          .get();
+
+      for (var doc in historySnapshot.docs) {
+        var data = doc.data() as Map<String, dynamic>;
+        DateTime date = (data['Intake_time'] as Timestamp).toDate();
+        String monthKey = DateFormat('MMM yyyy').format(date);
+
+        if (!monthlySummary.containsKey(monthKey)) {
+          monthlySummary[monthKey] = 0;
+        }
+        monthlySummary[monthKey] = monthlySummary[monthKey]! + 1;
+      }
+
+      setState(() {});
+    } catch (e) {
+      print('Error fetching summary: $e');
+    }
+  }
+
+  /// 📌 ดึงข้อมูลยา
+  Future<void> fetchMedications() async {
+    try {
+      QuerySnapshot medSnapshot = await FirebaseFirestore.instance
+          .collection('Medications')
+          .where('user_id', isEqualTo: widget.userId)
+          .get();
+
+      setState(() {
+        medications = medSnapshot.docs.map((doc) {
+          var data = doc.data() as Map<String, dynamic>;
+          return {
+            'name': data['M_name'] ?? 'Unknown',
+            'created_at': (data['Created_at'] as Timestamp?)?.toDate(),
+          };
+        }).toList();
+      });
+    } catch (e) {
+      print('Error fetching medications: $e');
+    }
+  }
+
+  /// 📌 ดึงข้อมูล Caregivers
+  Future<void> fetchCaregivers() async {
+    try {
+      QuerySnapshot caregiverSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(widget.userId)
+          .collection('Caregivers')
+          .get();
+
+      setState(() {
+        caregivers = caregiverSnapshot.docs.map((doc) {
+          var data = doc.data() as Map<String, dynamic>;
+          return {
+            'name': data['Name'] ?? 'Unknown',
+            'relationship': data['Relationship'] ?? 'Unknown',
+            'contact': data['Contact'] ?? 'No Contact',
+          };
+        }).toList();
+      });
+    } catch (e) {
+      print('Error fetching caregivers: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Users', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text('${widget.userName} Summary'),
         backgroundColor: const Color(0xFFC76355),
       ),
-      body: const Center(
-        child: Text('All Users Page'),
+      body: ListView(
+        padding: const EdgeInsets.all(16.0),
+        children: [
+          Text('User Registered: ${widget.createdAt != null ? DateFormat('dd MMM yyyy').format(widget.createdAt!) : "N/A"}'),
+          const SizedBox(height: 16),
+          const Text('Monthly Medication Usage:'),
+          ...monthlySummary.entries.map((entry) => ListTile(
+            title: Text(entry.key),
+            trailing: Text('${entry.value} doses'),
+          )),
+          const SizedBox(height: 16),
+          const Text('Caregivers:'),
+          ...caregivers.map((caregiver) => ListTile(
+            title: Text(caregiver['name']),
+            subtitle: Text('${caregiver['relationship']} - ${caregiver['contact']}'),
+          )),
+        ],
       ),
     );
   }

@@ -139,7 +139,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
         // แสดง snackbar กรณีไม่พบข้อมูลยา
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('No medicine found for this RFID tag'),
+            content: Text('ไม่เจอยาสำหรับ RFID นี้'),
             backgroundColor: Colors.red,
           ),
         );
@@ -165,7 +165,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
         automaticallyImplyLeading: false,
         elevation: 0,
         title: const Text(
-          'Place RFID',
+          'หน้าหลัก',
           style: TextStyle(
             color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
@@ -207,7 +207,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                 if (scannedUID == null) ...[
                   const Center(
                     child: Text(
-                      'วางยา',
+                      'วางยาที่มี RFID',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w500,
@@ -218,7 +218,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                   ),
                   const Center(
                     child: Text(
-                      'ของคุณ',
+                      'ที่นี่',
                       style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
@@ -230,7 +230,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                 ] else ...[
                   const Center(
                     child: Text(
-                      'Your medicine has been',
+                      'ยาของคุณได้รับการสแกน',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w500,
@@ -241,7 +241,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                   ),
                   const Center(
                     child: Text(
-                      'scanned',
+                      'เรียบร้อยแล้ว',
                       style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
@@ -262,7 +262,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                         size: 28, // เพิ่มขนาดไอคอน
                       ),
                       label: const Text(
-                        'Scan Again',
+                        'แสกนใหม่อีกครั้ง',
                         style: TextStyle(
                           fontSize: 22, // เพิ่มขนาดตัวอักษร
                           color: Colors.white,
@@ -298,7 +298,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    'Scanning...',
+                    'กำลังแสกน...',
                     style: TextStyle(
                       fontSize: 18,
                       color: Color(0xFFC76355),
@@ -354,7 +354,10 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
               ),
               child: const Text(
                 "ใช้งานโดยไม่ต้องใช้ RFID",
-                style: TextStyle(fontSize: 20, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 20, 
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,),
               ),
             ),
           ),
@@ -379,7 +382,7 @@ class _RFIDPageState extends State<RFIDPage> with TickerProviderStateMixin {
                     const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
               ),
               child: const Text(
-                'เพิ่มยา',
+                'เพิ่มชื่อและข้อมูลยา',
                 style: TextStyle(
                   fontSize: 18,
                   color: Colors.white,

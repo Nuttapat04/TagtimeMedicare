@@ -182,7 +182,7 @@ Future<void> _changeProfileImage() async {
         backgroundColor: const Color(0xFFFFF4E0),
         automaticallyImplyLeading: false,
         title: const Text(
-          'Profile',
+          'โปรไฟล์',
           style: TextStyle(
             color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,

@@ -15,7 +15,7 @@ class CustomerSupportPage extends StatelessWidget {
           },
         ),
         title: const Text(
-          'Customer Support',
+          'ฝ่ายสนับนุนลูกค้า',
           style: TextStyle(
             color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
@@ -29,7 +29,7 @@ class CustomerSupportPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '📞 Tel. 099-999-9999',
+              '📞 โทร. 099-999-9999',
               style: TextStyle(
                 fontSize: 18,
                 color: Color(0xFFC76355),
@@ -38,7 +38,7 @@ class CustomerSupportPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              '🏠 Address: 1518 Pracharat 1 Road,Wongsawang, Bangsue, Bangkok 10800 Thailand.',
+              '🏠 ที่อยู่: 1518 ถนน ​ประชา​ราษฎร์​1 แขวงวงศ์สว่าง เขตบางซื่อ กรุงเทพมหานคร 10800',
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey,

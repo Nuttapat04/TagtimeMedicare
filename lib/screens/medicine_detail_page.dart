@@ -70,30 +70,32 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
         'markedTimes_${widget.rfidUID}', markedTimes.toList());
   }
 
-  /// ✅ บันทึก Late อัตโนมัติ ถ้าเลยกำหนดไปแล้ว 2 ชั่วโมง และยังไม่มีบันทึก
   Future<void> _autoSaveLateEntries() async {
-    print("⏳ Checking for late entries...");
-    DateTime now = DateTime.now();
+  DateTime now = DateTime.now();
+  String today = DateFormat('yyyy-MM-dd').format(now);
 
-    for (String time in widget.medicineData['Notification_times']) {
-      bool isMarked = await _checkIfMarkedAlready(time);
-      if (isMarked) {
-        print("⚠️ Already saved for $time - Skipping auto-save.");
-        continue; // ✅ ข้ามถ้ามีอยู่แล้ว
-      }
+  // เช็คว่ามีการบันทึกแล้วหรือไม่
+  QuerySnapshot existingRecords = await FirebaseFirestore.instance
+      .collection('Medication_history')
+      .where('User_id', isEqualTo: widget.medicineData['user_id'])
+      .where('RFID_tag', isEqualTo: widget.medicineData['RFID_tag'])
+      .where('Date', isEqualTo: today)
+      .get();
 
-      String status = await _checkStatus(time);
-      if (status == "Upcoming") {
-        print("🟢 $time is still Upcoming. Skipping auto-save.");
-        continue;
-      }
+  Set<String> recordedTimes = existingRecords.docs
+      .map((doc) => doc.data() as Map<String, dynamic>)
+      .map((data) => data['Scheduled_time'] as String)
+      .toSet();
 
-      if (status == "Late") {
-        print("🔥 Auto-saving $time as Late...");
-        await _saveToHistory(time, "Late", autoSave: true);
-      }
+  for (String time in widget.medicineData['Notification_times']) {
+    if (recordedTimes.contains(time)) continue;
+
+    String status = await _checkStatus(time);
+    if (status == "Late") {
+      await _saveToHistory(time, "Late", autoSave: true);
     }
   }
+}
 
   Color getStatusColor(String status) {
     switch (status) {
@@ -139,6 +141,7 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
         .where('User_id', isEqualTo: userId)
         .where('RFID_tag', isEqualTo: rfidTag)
         .where('Medication_id', isEqualTo: medicationId)
+        .where('AutoSave', isEqualTo: false)
         .where('Scheduled_time', isEqualTo: time)
         .where('Date', isEqualTo: today)
         .where('mark', isEqualTo: true) // ✅ เพิ่มการเช็ค mark
@@ -262,7 +265,7 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
     String frequency = widget.medicineData['Frequency'] ?? 'Unknown';
 
     String textToRead =
-        "Name: $name. Instructions: $instructions. Frequency: $frequency.";
+        "ชื่อยา: $name. รายละเอียดยา: $instructions. ความถี่: $frequency.";
 
     // เช็คว่ามีข้อความเป็นภาษาไทยไหม
     bool containsThai = RegExp(r'[\u0E00-\u0E7F]').hasMatch(textToRead);
@@ -298,7 +301,7 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
         backgroundColor: const Color(0xFFFFF8E1),
         elevation: 0,
         title: const Text(
-          'Medicine Details',
+          'ข้อมูลยา',
           style: TextStyle(
             color: Color(0xFFC76355),
             fontWeight: FontWeight.bold,
@@ -342,14 +345,14 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
           children: [
             /// 🔥 **เอา Information กลับมา**
             _buildInfoCard(
-              title: 'Medicine Information',
+              title: 'ข้อมูลยา',
               child: Column(
                 children: [
-                  _buildInfoRow('Name', widget.medicineData['M_name'] ?? 'N/A'),
-                  _buildInfoRow('Instructions',
+                  _buildInfoRow('ชื่อยา', widget.medicineData['M_name'] ?? 'N/A'),
+                  _buildInfoRow('รายละเอียด',
                       widget.medicineData['Properties'] ?? 'N/A'),
                   _buildInfoRow(
-                      'Frequency', widget.medicineData['Frequency'] ?? 'N/A'),
+                      'ความถี่', widget.medicineData['Frequency'] ?? 'N/A'),
                 ],
               ),
             ),
@@ -358,7 +361,7 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
             /// ✅ **Scheduled Times**
             _buildInfoCard(
               title:
-                  'Scheduled Times - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
+                  'วันที่ - ${DateFormat('yyyy-MM-dd').format(DateTime.now())}',
               child: Column(
                 children: widget.medicineData['Notification_times']
                     .map<Widget>((time) {
@@ -368,10 +371,10 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
 
                   return Column(
                     children: [
-                      _buildInfoRow('Time', time),
+                      _buildInfoRow('เวลา', time),
                       Center(
                         child: Text(
-                          'Status: ${isMarked ? "Marked" : status}',
+                          'สถานะ: ${isMarked ? "Marked" : status}',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -395,7 +398,7 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
                               ),
                             ),
                             child: const Text(
-                              "Mark as Taken",
+                              "กดเมื่อใช้ยาแล้ว",
                               style: TextStyle(
                                 fontSize: 20,
                                 color: Colors.white,
