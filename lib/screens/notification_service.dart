@@ -14,6 +14,8 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
   factory NotificationService() => _instance;
   NotificationService._internal();
+  bool _isCheckingSkippedMedications = false; // เพิ่ม Flag
+  Timer? _debounceTimer;
 
   static NotificationService get instance => _instance;
 
@@ -60,8 +62,6 @@ class NotificationService {
 
     print('✅ NotificationService initialized');
   }
-
-  
 
   void _handleNotificationClick(String? payload) async {
     print('🔔 Notification clicked with payload: $payload');
@@ -187,107 +187,157 @@ class NotificationService {
     }
   }
 
-  void checkAndRecordSkippedMedications(String userId) {
-  print('🔍 เริ่มตรวจสอบยาที่ไม่ได้ทาน');
-  
+Future<void> checkAndRecordSkippedMedications(String userId) async {
+  if (_isCheckingSkippedMedications) {
+    print('⏳ กำลังตรวจสอบอยู่แล้ว ไม่ต้องเรียกซ้ำ');
+    return;
+  }
+
+  _isCheckingSkippedMedications = true;
+  print('🔍 กำลังตรวจสอบยาที่ไม่ได้ทาน');
+
+  try {
+    final now = DateTime.now();
+    final formattedDate =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('Medications')
+        .where('user_id', isEqualTo: userId)
+        .get();
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final medicationId = doc.id;
+      final rfidTag = data['RFID_tag'];
+      final newNotificationTimes = List<String>.from(data['Notification_times'] ?? []);
+      final lastSkipCheck = (data['Last_skip_check'] as Timestamp?)?.toDate() ?? DateTime(2000);
+
+      // ✅ ดึงรายการ Skip ทั้งหมดของวันนี้
+      final historySnapshot = await FirebaseFirestore.instance
+          .collection('Medication_history')
+          .where('User_id', isEqualTo: userId)
+          .where('Medication_id', isEqualTo: medicationId)
+          .where('Date', isEqualTo: formattedDate)
+          .where('Status', isEqualTo: 'Skip')
+          .get();
+
+      List<String> existingSkippedTimes = historySnapshot.docs.map((doc) => doc['Scheduled_time'] as String).toList();
+
+      // ✅ หาว่าเวลาที่มีอยู่ใน `Medication_history` แต่ไม่มีใน `newNotificationTimes`
+      final timesToRemove = existingSkippedTimes.where((time) => !newNotificationTimes.contains(time)).toList();
+
+      // 🗑 ลบ Skip ของเวลาที่ไม่มีใน Notification_times ใหม่
+      if (timesToRemove.isNotEmpty) {
+        print('🗑 ลบ Skip ที่ไม่อยู่ในเวลาปัจจุบัน: $timesToRemove');
+
+        for (String time in timesToRemove) {
+          final oldSkipRecords = await FirebaseFirestore.instance
+              .collection('Medication_history')
+              .where('User_id', isEqualTo: userId)
+              .where('Medication_id', isEqualTo: medicationId)
+              .where('Scheduled_time', isEqualTo: time)
+              .where('Date', isEqualTo: formattedDate)
+              .where('Status', isEqualTo: 'Skip')
+              .get();
+
+          for (var record in oldSkipRecords.docs) {
+            await FirebaseFirestore.instance.collection('Medication_history').doc(record.id).delete();
+            print('🗑 ลบ Skip สำหรับเวลา $time แล้ว');
+          }
+        }
+      }
+
+      // ✅ เพิ่ม Skip ให้กับเวลาที่ถูกเพิ่มใหม่
+      for (String time in newNotificationTimes) {
+        final timeParts = time.split(':');
+        final scheduledDateTime = DateTime(
+          now.year,
+          now.month,
+          now.day,
+          int.parse(timeParts[0]),
+          int.parse(timeParts[1]),
+        );
+
+        final difference = now.difference(scheduledDateTime);
+
+        if (difference.inMinutes <= 300) {  
+          print('⏳ ยังไม่ถึงเวลาตรวจสอบ Skip สำหรับ $time');
+          continue;
+        }
+
+        // ✅ เช็คว่ามีการบันทึก Skip ไปแล้วหรือยัง
+        if (existingSkippedTimes.contains(time)) {
+          print('✅ มีการบันทึก Skip แล้วสำหรับ $time, ไม่ต้องบันทึกซ้ำ');
+          continue;
+        }
+
+        // ✅ เพิ่ม Skip สำหรับเวลาใหม่
+        print('⚠️ บันทึก Skip สำหรับเวลาใหม่ $time');
+        await FirebaseFirestore.instance.collection('Medication_history').add({
+          'User_id': userId,
+          'RFID_tag': rfidTag,
+          'Medication_id': medicationId,
+          'Scheduled_time': time,
+          'Date': formattedDate,
+          'Status': 'Skip',
+          'AutoSave': true,
+          'mark': false,
+          'Intake_time': FieldValue.serverTimestamp(),
+        });
+
+        // ✅ อัปเดต Last_skip_check หลังจากบันทึก Skip ใหม่
+        await FirebaseFirestore.instance.collection('Medications').doc(medicationId).update({
+          'Last_skip_check': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+  } catch (e) {
+    print('❌ Error checking skipped medications: $e');
+  } finally {
+    _isCheckingSkippedMedications = false;
+  }
+}
+
+
+void listenToMedicationChanges(String userId) {
+  print('🔍 Listening for medication changes for User ID: $userId');
+
   FirebaseFirestore.instance
       .collection('Medications')
       .where('user_id', isEqualTo: userId)
       .snapshots()
       .listen((snapshot) async {
-    for (var doc in snapshot.docs) {
-      final data = doc.data();
-      final notificationTimes = List<String>.from(data['Notification_times'] ?? []);
-      final rfidTag = data['RFID_tag'];
-      final medicationId = doc.id;
-      
-      for (String time in notificationTimes) {
-        await _checkAndRecordSkip(
-          userId: userId,
-          rfidTag: rfidTag,
-          medicationId: medicationId,
-          scheduledTime: time,
-        );
-      }
+    if (snapshot.docChanges.isEmpty) {
+      print('🔄 No actual changes detected, skipping...');
+      return;
     }
-  });
-}
 
-Future<void> _checkAndRecordSkip({
-  required String userId,
-  required String rfidTag,
-  required String medicationId,
-  required String scheduledTime,
-}) async {
-  final today = DateTime.now();
-  final formattedDate = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
-  
-  // แปลงเวลาที่กำหนด
-  final timeParts = scheduledTime.split(':');
-  final scheduledDateTime = DateTime(
-    today.year,
-    today.month,
-    today.day,
-    int.parse(timeParts[0]),
-    int.parse(timeParts[1]),
-  );
-  
-  // ตรวจสอบว่าผ่านไป 2 ชั่วโมงหรือยัง
-  final difference = today.difference(scheduledDateTime);
-  if (difference.inMinutes <= 120) {
-    print('⏳ ยังไม่ถึงเวลาบันทึก Skip สำหรับ $scheduledTime');
-    return;
-  }
+    bool shouldCheckSkip = false;
 
-  // สร้าง compound query เพื่อค้นหาประวัติการทานยาที่ตรงกับเงื่อนไขทั้งหมด
-  final existingRecord = await FirebaseFirestore.instance
-      .collection('Medication_history')
-      .where('User_id', isEqualTo: userId)
-      .where('RFID_tag', isEqualTo: rfidTag)
-      .where('Medication_id', isEqualTo: medicationId)
-      .where('Date', isEqualTo: formattedDate)
-      .where('Scheduled_time', isEqualTo: scheduledTime)
-      .limit(1) // เพิ่ม limit เพื่อประสิทธิภาพ
-      .get();
+    for (var change in snapshot.docChanges) {
+      final docData = change.doc.data() as Map<String, dynamic>?;
 
-  if (existingRecord.docs.isNotEmpty) {
-    print('✅ มีการบันทึกข้อมูลแล้วสำหรับ $scheduledTime');
-    return;
-  }
+      if (docData == null) continue;
 
-  // ถ้ายังไม่มีการบันทึก จึงทำการบันทึก Skip
-  print('⚠️ บันทึก Skip สำหรับ $scheduledTime');
-  await FirebaseFirestore.instance.collection('Medication_history').add({
-    'User_id': userId,
-    'RFID_tag': rfidTag,
-    'Medication_id': medicationId,
-    'Scheduled_time': scheduledTime,
-    'Date': formattedDate,
-    'Status': 'Skip',
-    'AutoSave': true,
-    'mark': false,
-    'Intake_time': Timestamp.now(),
-  });
-}
+      // เช็กว่าเปลี่ยน Notification_times หรือเปล่า
+      if (change.type == DocumentChangeType.modified) {
+        final newTimes = List<String>.from(docData['Notification_times'] ?? []);
+        final lastUpdated = (docData['Updated_at'] as Timestamp?)?.toDate();
 
-  void listenToMedicationChanges(String userId) {
-  print('🔍 Listening for medication changes for User ID: $userId');
+        // ถ้ามีการเปลี่ยนแปลงเวลา ให้ข้ามการเช็ก Skip
+        if (lastUpdated != null &&
+            DateTime.now().difference(lastUpdated).inMinutes < 2) {
+          print('🛑 มีการอัปเดตยา (เปลี่ยนเวลา) ข้ามการเช็ก Skip');
+          return;
+        }
+      }
 
-  
-  // สร้าง Timer สำหรับเช็คยาที่ไม่ได้ทาน ทุก 1 ชั่วโมง
-  Timer.periodic(Duration(hours: 1), (timer) {
-    checkAndRecordSkippedMedications(userId);
-  });
-  
+      shouldCheckSkip = true;
+    }
 
-    FirebaseFirestore.instance
-        .collection('Medications')
-        .where('user_id', isEqualTo: userId)
-        .snapshots()
-        .listen((snapshot) async {
-      print('🚨 FIREBASE CHANGE DETECTED 🚨');
-      print('📊 Total documents changed: ${snapshot.docs.length}');
-
+    if (shouldCheckSkip) {
+      await checkAndRecordSkippedMedications(userId);
       await cancelAllNotifications();
       print('🧹 Cancelled all previous notifications');
 
@@ -337,11 +387,42 @@ Future<void> _checkAndRecordSkip({
           }
         }
       }
-    }, onError: (error) {
-      print('❌ CRITICAL ERROR in medication changes listener');
-      print('Error: $error');
-    });
+    }
+  }, onError: (error) {
+    print('❌ CRITICAL ERROR in medication changes listener');
+    print('Error: $error');
+  });
+}
+
+Future<void> removeOldSkips(String userId, String medicationId, List<String> oldTimes, List<String> newTimes) async {
+  final now = DateTime.now();
+  final formattedDate =
+      "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+  // หาค่าเวลาเก่าที่ไม่ได้อยู่ในลิสต์ใหม่
+  final timesToRemove = oldTimes.where((time) => !newTimes.contains(time)).toList();
+
+  if (timesToRemove.isEmpty) return; // ถ้าไม่มีเวลาเก่าที่ต้องลบ ก็ไม่ต้องทำอะไร
+
+  print('🗑 กำลังลบ Skip เก่าที่ไม่อยู่ในเวลาปัจจุบัน: $timesToRemove');
+
+  for (String time in timesToRemove) {
+    final existingRecords = await FirebaseFirestore.instance
+        .collection('Medication_history')
+        .where('User_id', isEqualTo: userId)
+        .where('Medication_id', isEqualTo: medicationId)
+        .where('Scheduled_time', isEqualTo: time)
+        .where('Date', isEqualTo: formattedDate)
+        .where('Status', isEqualTo: 'Skip')
+        .get();
+
+    for (var doc in existingRecords.docs) {
+      await FirebaseFirestore.instance.collection('Medication_history').doc(doc.id).delete();
+      print('🗑 ลบ Skip สำหรับ $time แล้ว');
+    }
   }
+}
+
 
   Future<void> cancelAllNotifications() async {
     try {

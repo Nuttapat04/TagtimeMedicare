@@ -112,18 +112,6 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
     }
   }
 
-  void _updateCurrentTime() {
-    Future.delayed(Duration(seconds: 10), () {
-      setState(() {
-        currentTime = DateFormat.Hm().format(DateTime.now());
-      });
-
-      // ✅ เช็กสถานะใหม่ทุก 10 วินาที
-      _initializeStatus();
-      _updateCurrentTime();
-    });
-  }
-
   Future<bool> _checkIfMarkedAlready(String time) async {
     String? userId = widget.medicineData['user_id'];
     String? rfidTag = widget.medicineData['RFID_tag'];
@@ -204,6 +192,9 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
       ),
     );
   }
+  void listenToMedicationChanges(String userId) {
+  print('❌ Firestore snapshot listener removed');
+}
 
   Future<String?> _fetchMedicationId(String rfidTag) async {
     try {

@@ -8,12 +8,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 import 'dart:io';
-import 'package:printing/printing.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:month_year_picker/month_year_picker.dart';
-import 'dart:io' show Platform, File;
-import 'package:share_plus/share_plus.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'dart:io' show File;
 
 class SummaryPage extends StatefulWidget {
   final String userId;
@@ -332,8 +328,10 @@ class _SummaryPageState extends State<SummaryPage>
         backgroundColor: const Color(0xFFFEF4E0),
         title: const Text(
           "สรุปการใช้ยา",
-          style: TextStyle(color: Color(0xFFC76355),
-          fontWeight: FontWeight.bold,),
+          style: TextStyle(
+            color: Color(0xFFC76355),
+            fontWeight: FontWeight.bold,
+          ),
         ),
         centerTitle: true,
         iconTheme: const IconThemeData(color: Color(0xFFC76355)),
@@ -1177,6 +1175,35 @@ class _SummaryPageState extends State<SummaryPage>
     );
   }
 
+  Future<void> updateMedicationTime(String docId, List<String> newTimes) async {
+    final medicationDoc = await FirebaseFirestore.instance
+        .collection('Medications')
+        .doc(docId)
+        .get();
+
+    if (medicationDoc.exists) {
+      final oldTimes =
+          List<String>.from(medicationDoc.data()?['Notification_times'] ?? []);
+
+      // ถ้าค่าเวลาที่จะบันทึกยังเหมือนเดิม ให้ return ออกไป ไม่ต้องอัปเดต
+      if (oldTimes.toSet().difference(newTimes.toSet()).isEmpty) {
+        print('🛑 เวลาแจ้งเตือนเหมือนเดิม ไม่ต้องอัปเดต');
+        return;
+      }
+    }
+
+    // ถ้าเวลามีการเปลี่ยนแปลง อัปเดต Firestore
+    await FirebaseFirestore.instance
+        .collection('Medications')
+        .doc(docId)
+        .update({
+      'Notification_times': newTimes,
+      'Updated_at': FieldValue.serverTimestamp(),
+    });
+
+    print('✅ อัปเดตเวลาแจ้งเตือนเรียบร้อย');
+  }
+
   void _showEditDialog(
       BuildContext context, String docId, Map<String, dynamic> medData) {
     final nameController = TextEditingController(text: medData['M_name']);
@@ -1356,8 +1383,17 @@ class _SummaryPageState extends State<SummaryPage>
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    // Save updated medication to Firestore
                     try {
+                      final updatedNotificationTimes = notificationTimes
+                          .map((time) =>
+                              '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}')
+                          .toList();
+
+                      // อัปเดต Notification_times แค่เมื่อมันเปลี่ยนแปลง
+                      await updateMedicationTime(
+                          docId, updatedNotificationTimes);
+
+                      // อัปเดตข้อมูลยาอื่น ๆ
                       await FirebaseFirestore.instance
                           .collection('Medications')
                           .doc(docId)
@@ -1367,10 +1403,6 @@ class _SummaryPageState extends State<SummaryPage>
                         'Start_date': startDate,
                         'End_date': endDate,
                         'Frequency': '$frequency times/day',
-                        'Notification_times': notificationTimes
-                            .map((time) =>
-                                '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}')
-                            .toList(),
                         'Updated_at': FieldValue.serverTimestamp(),
                       });
 

@@ -70,7 +70,12 @@
    <array>
        <string>fetch</string>
        <string>remote-notification</string>
+       <string>processing</string>
    </array>
+<key>BGTaskSchedulerPermittedIdentifiers</key>
+<array>
+    <string>checkSkippedMedications</string>
+</array>
    
    <key>NSAppTransportSecurity</key>
    <dict>
