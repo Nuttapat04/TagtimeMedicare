@@ -217,7 +217,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           Text(
-                            'OR',
+                            'หรือ',
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.grey,
@@ -280,7 +280,7 @@ class _LoginPageState extends State<LoginPage> {
       child: TextButton(
         onPressed: () => Navigator.pushNamed(context, '/forget-password'),
         child: const Text(
-          'Forgot Password?',
+          'ลืมรหัสผ่าน?',
           style: TextStyle(color: Color(0xFFC76355)),
         ),
       ),
@@ -300,7 +300,7 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         child: const Text(
-          'Login with Email',
+          'Login ด้วยอีเมล',
           style: TextStyle(
             fontSize: 18,
             color: Colors.white,
@@ -318,7 +318,7 @@ class _LoginPageState extends State<LoginPage> {
       child: OutlinedButton.icon(
         icon: Image.asset('images/google_logo.png', height: 24),
         label: const Text(
-          'Sign in with Google',
+          'Sign in โดยใช้ Google',
           style: TextStyle(
             fontSize: 18,
             color: Color(0xFFC76355),
@@ -341,7 +341,7 @@ class _LoginPageState extends State<LoginPage> {
     return TextButton(
       onPressed: () => Navigator.pushNamed(context, '/register'),
       child: const Text(
-        'Don\'t have an account? Register here',
+        'ยังไม่เคยสมัครสมาชิก? สมัครเลย',
         style: TextStyle(color: Color(0xFFC76355)),
       ),
     );
@@ -349,17 +349,17 @@ class _LoginPageState extends State<LoginPage> {
 
   String? validateEmail(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Please enter your email';
+      return 'กรุณากรอกอีเมล';
     }
     if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-      return 'Please enter a valid email address';
+      return 'กรุณากรอกอีเมลที่ถูกต้อง';
     }
     return null;
   }
 
   String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
-      return 'Please enter your password';
+      return 'กรุณากรอกรหัสผ่าน';
     }
     return null;
   }

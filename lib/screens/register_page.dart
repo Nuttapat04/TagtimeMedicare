@@ -105,12 +105,12 @@ class _RegisterPageState extends State<RegisterPage> {
         final isAvailable =
             await isUsernameAvailable(usernameController.text.trim());
         if (!isAvailable) {
-          throw Exception('Username is already taken');
+          throw Exception('Username นี้ถูกใช้งานไปแล้ว');
         }
 
         // Check age requirement
         if (selectedDate == null || !isOver14Years(selectedDate!)) {
-          throw Exception('You must be at least 14 years old to register');
+          throw Exception('คุณต้องมีอายุอย่างน้อย 14 ปีขึ้นไป');
         }
 
         // Create user account in Authentication first
@@ -150,7 +150,7 @@ class _RegisterPageState extends State<RegisterPage> {
         await _firestore.collection('Users').doc(uid).set(userData);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Registration Successful!')),
+          SnackBar(content: Text('สมัครสมาชิกสำเร็จ!')),
         );
 
         Navigator.pop(context);
@@ -160,11 +160,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
         if (e is FirebaseAuthException) {
           if (e.code == 'email-already-in-use') {
-            message = 'This email is already registered';
+            message = 'อีเมลนี้ถูกใช้งานไปแล้ว';
           } else if (e.code == 'weak-password') {
-            message = 'The password provided is too weak';
+            message = 'รหัสผ่านอ่อนแอเกินไป';
           } else if (e.code == 'invalid-email') {
-            message = 'The email address is not valid';
+            message = 'อีเมลไม่ถูกต้อง';
           }
         } else if (e is Exception) {
           message = e.toString().replaceAll('Exception: ', '');
@@ -187,7 +187,7 @@ class _RegisterPageState extends State<RegisterPage> {
       backgroundColor: const Color(0xFFFFF4E0),
       appBar: AppBar(
         title: Text(
-          'Register',
+          'สมัครสมาชิก',
           style: TextStyle(
             fontFamily: 'Roboto',
             fontWeight: FontWeight.bold,
@@ -238,7 +238,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         controller: usernameController,
                         label: 'Username',
                         validator: (value) =>
-                            value!.isEmpty ? 'Please enter a username' : null,
+                            value!.isEmpty ? 'กรุณากรอก Username' : null,
                       ),
                       SizedBox(height: 16),
                       buildTextFormField(
@@ -247,11 +247,11 @@ class _RegisterPageState extends State<RegisterPage> {
                         keyboardType: TextInputType.emailAddress,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter an email';
+                            return 'กรุณากรอกอีเมล';
                           }
                           final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
                           if (!emailRegex.hasMatch(value)) {
-                            return 'Please enter a valid email';
+                            return 'กรุณากรอกอีเมลให้ถูกต้อง';
                           }
                           return null;
                         },
@@ -262,15 +262,15 @@ class _RegisterPageState extends State<RegisterPage> {
                         label: 'Password',
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter a password';
+                            return 'กรุณากรอกรหัสผ่าน';
                           }
                           if (value.length < 8) {
-                            return 'Password must be at least 8 characters';
+                            return 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
                           }
                           final passwordRegex = RegExp(
                               r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)[A-Za-z\d]{8,}$');
                           if (!passwordRegex.hasMatch(value)) {
-                            return 'Password must contain uppercase, lowercase and number';
+                            return 'รหัสผ่านต้องมีอย่างน้อย ตัวพิมพ์ใหญ่, ตัวพิมพ์เล็กและ ตัวเลข';
                           }
                           return null;
                         },
@@ -281,7 +281,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         label: 'Confirm Password',
                         validator: (value) {
                           if (value != passwordController.text) {
-                            return 'Passwords do not match';
+                            return 'รหัสผ่านไม่ตรงกัน';
                           }
                           return null;
                         },
@@ -291,7 +291,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         controller: nameController,
                         label: 'First Name',
                         validator: (value) => value!.isEmpty
-                            ? 'Please enter your first name'
+                            ? 'กรุณากรอกชื่อ'
                             : null,
                       ),
                       SizedBox(height: 16),
@@ -299,7 +299,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         controller: surnameController,
                         label: 'Last Name',
                         validator: (value) => value!.isEmpty
-                            ? 'Please enter your last name'
+                            ? 'กรุณากรอกนามสกุล'
                             : null,
                       ),
                       SizedBox(height: 16),
@@ -309,11 +309,11 @@ class _RegisterPageState extends State<RegisterPage> {
                         keyboardType: TextInputType.phone,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your phone number';
+                            return 'กรุณากรอกเบอร์โทร';
                           }
                           final phoneRegex = RegExp(r'^0[0-9]{9}$');
                           if (!phoneRegex.hasMatch(value)) {
-                            return 'Please enter a valid phone number';
+                            return 'กรุณากรอกเบอร์โทรที่ถูกต้อง';
                           }
                           return null;
                         },
@@ -340,7 +340,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           minimumSize: Size(double.infinity, 50),
                         ),
                         child: Text(
-                          'Register',
+                          'สมัครสมาชิก',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -443,7 +443,7 @@ class _RegisterPageState extends State<RegisterPage> {
           color: const Color(0xFFC76355),
         ),
         border: OutlineInputBorder(),
-        helperText: 'At least 8 characters with uppercase, lowercase & number',
+        helperText: 'รหัสผ่านต้องมีอย่างน้อย ตัวพิมพ์ใหญ่, ตัวพิมพ์เล็กและ ตัวเลข',
         suffixIcon: IconButton(
           icon: Icon(
             _isPasswordHidden ? Icons.visibility_off : Icons.visibility,
@@ -458,18 +458,18 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter a password';
+          return 'กรุณากรอกรหัสผ่าน';
         }
         if (value.length < 8) {
-          return 'Password must be at least 8 characters';
+          return 'รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร';
         }
         if (!RegExp(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)').hasMatch(value)) {
-          return 'Include uppercase, lowercase & number';
+          return 'รหัสผ่านต้องมีอย่างน้อย ตัวพิมพ์ใหญ่, ตัวพิมพ์เล็กและ ตัวเลข';
         }
         // Check for common passwords
         if (['password123', 'qwerty123', '12345678']
             .contains(value.toLowerCase())) {
-          return 'Please use a stronger password';
+          return 'รหัสผ่านอ่อนแอเกินไป';
         }
         return null;
       },
@@ -490,16 +490,16 @@ class _RegisterPageState extends State<RegisterPage> {
           color: const Color(0xFFC76355),
         ),
         border: OutlineInputBorder(),
-        helperText: 'Must be at least 14 years old',
+        helperText: 'คุณต้องมีอายุอย่างน้อย 14 ปีขึ้นไป',
         suffixIcon: Icon(Icons.calendar_today),
       ),
       readOnly: true,
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please select your date of birth';
+          return 'โปรดเลือกวันเกิดของคุณ';
         }
         if (selectedDate == null || !isOver14Years(selectedDate!)) {
-          return 'You must be at least 14 years old';
+          return 'คุณต้องมีอายุอย่างน้อย 14 ปีขึ้นไป';
         }
         return null;
       },
@@ -510,13 +510,13 @@ class _RegisterPageState extends State<RegisterPage> {
           firstDate: DateTime(1900),
           lastDate: DateTime.now(),
           helpText: 'Select Date of Birth',
-          errorFormatText: 'Enter valid date',
-          errorInvalidText: 'Enter date in valid range',
+          errorFormatText: 'กรุณากรอกวันเกิดให้ถูกต้อง',
+          errorInvalidText: 'กรุณากรอกวันเกิดให้ถูกต้อง',
         );
         if (picked != null) {
           if (!isOver14Years(picked)) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('You must be at least 14 years old')),
+              SnackBar(content: Text('คุณต้องมีอายุอย่างน้อย 14 ปีขึ้นไป')),
             );
             return;
           }
