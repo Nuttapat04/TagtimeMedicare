@@ -29,7 +29,7 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
   void initState() {
     super.initState();
     _initializeStatus();
-    _autoSaveLateEntries();
+
   }
 
   Future<void> _initializeStatus() async {
@@ -38,7 +38,7 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
     final prefs = await SharedPreferences.getInstance();
     List<String> savedMarkedTimes =
         prefs.getStringList('markedTimes_${widget.rfidUID}') ?? [];
-    markedTimes = savedMarkedTimes.toSet(); // ✅ คืนค่าให้ markedTimes
+    markedTimes = savedMarkedTimes.toSet();
 
     List<String> notificationTimes =
         (widget.medicineData['Notification_times'] as List<dynamic>?)
@@ -46,22 +46,39 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
                 .toList() ??
             [];
 
-    for (String time in notificationTimes) {
+    // ✅ ตรวจสอบว่า Medication_id เป็น null และดึงค่าใหม่จาก Firestore
+    if (widget.medicineData['Medication_id'] == null) {
+      String? medicationId =
+          await _fetchMedicationId(widget.medicineData['RFID_tag']);
+
+      if (medicationId != null) {
+        widget.medicineData['Medication_id'] = medicationId;
+        print("🔄 Updated widget.medicineData['Medication_id']: $medicationId");
+      } else {
+        print("⚠️ Medication_id ยังเป็น null, ข้ามการตั้งค่า...");
+        return;
+      }
+    }
+
+    if (widget.medicineData['user_id'] == null ||
+        widget.medicineData['RFID_tag'] == null ||
+        widget.medicineData['Medication_id'] == null) {
+      print("⚠️ ข้อมูลไม่ครบ (ยังหา Medication_id ไม่เจอ)");
+      return;
+    }
+
+    await Future.wait(notificationTimes.map((time) async {
       bool isMarked =
           markedTimes.contains(time) || await _checkIfMarkedAlready(time);
 
       if (isMarked) {
-        setState(() {
-          statusMap[time] = "Marked";
-          markedTimes.add(time);
-        });
+        statusMap[time] = "Marked";
       } else {
-        String status = await _checkStatus(time);
-        setState(() {
-          statusMap[time] = status;
-        });
+        statusMap[time] = await _checkStatus(time);
       }
-    }
+    }));
+
+    setState(() {});
   }
 
   Future<void> saveMarkedTimes() async {
@@ -71,31 +88,31 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
   }
 
   Future<void> _autoSaveLateEntries() async {
-  DateTime now = DateTime.now();
-  String today = DateFormat('yyyy-MM-dd').format(now);
+    DateTime now = DateTime.now();
+    String today = DateFormat('yyyy-MM-dd').format(now);
 
-  // เช็คว่ามีการบันทึกแล้วหรือไม่
-  QuerySnapshot existingRecords = await FirebaseFirestore.instance
-      .collection('Medication_history')
-      .where('User_id', isEqualTo: widget.medicineData['user_id'])
-      .where('RFID_tag', isEqualTo: widget.medicineData['RFID_tag'])
-      .where('Date', isEqualTo: today)
-      .get();
+    // เช็คว่ามีการบันทึกแล้วหรือไม่
+    QuerySnapshot existingRecords = await FirebaseFirestore.instance
+        .collection('Medication_history')
+        .where('User_id', isEqualTo: widget.medicineData['user_id'])
+        .where('RFID_tag', isEqualTo: widget.medicineData['RFID_tag'])
+        .where('Date', isEqualTo: today)
+        .get();
 
-  Set<String> recordedTimes = existingRecords.docs
-      .map((doc) => doc.data() as Map<String, dynamic>)
-      .map((data) => data['Scheduled_time'] as String)
-      .toSet();
+    Set<String> recordedTimes = existingRecords.docs
+        .map((doc) => doc.data() as Map<String, dynamic>)
+        .map((data) => data['Scheduled_time'] as String)
+        .toSet();
 
-  for (String time in widget.medicineData['Notification_times']) {
-    if (recordedTimes.contains(time)) continue;
+    for (String time in widget.medicineData['Notification_times']) {
+      if (recordedTimes.contains(time)) continue;
 
-    String status = await _checkStatus(time);
-    if (status == "Late") {
-      await _saveToHistory(time, "Late", autoSave: true);
+      String status = await _checkStatus(time);
+      if (status == "Late") {
+        await _saveToHistory(time, "Late", autoSave: true);
+      }
     }
   }
-}
 
   Color getStatusColor(String status) {
     switch (status) {
@@ -118,22 +135,23 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
     String? medicationId = widget.medicineData['Medication_id'];
 
     if (userId == null || rfidTag == null || medicationId == null) {
-      print("⚠️ Missing required data. Skipping check.");
+      print(
+          "⚠️ Missing required data in _checkIfMarkedAlready(). Skipping check.");
       return false;
     }
 
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
 
-     QuerySnapshot snapshot = await FirebaseFirestore.instance
-      .collection('Medication_history')
-      .where('User_id', isEqualTo: userId)
-      .where('RFID_tag', isEqualTo: rfidTag)
-      .where('Medication_id', isEqualTo: medicationId)
-      .where('Scheduled_time', isEqualTo: time)
-      .where('Date', isEqualTo: today)
-      .where('mark', isEqualTo: true)
-      .where('AutoSave', isEqualTo: false) 
-      .get();
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('Medication_history')
+        .where('User_id', isEqualTo: userId)
+        .where('RFID_tag', isEqualTo: rfidTag)
+        .where('Medication_id', isEqualTo: medicationId)
+        .where('Scheduled_time', isEqualTo: time)
+        .where('Date', isEqualTo: today)
+        .where('mark', isEqualTo: true)
+        .where('AutoSave', isEqualTo: false)
+        .get();
 
     return snapshot.docs.isNotEmpty;
   }
@@ -192,11 +210,17 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
       ),
     );
   }
+
   void listenToMedicationChanges(String userId) {
-  print('❌ Firestore snapshot listener removed');
-}
+    print('❌ Firestore snapshot listener removed');
+  }
 
   Future<String?> _fetchMedicationId(String rfidTag) async {
+    if (rfidTag.isEmpty) {
+      print("⚠️ RFID Tag is empty!");
+      return null;
+    }
+
     try {
       var snapshot = await FirebaseFirestore.instance
           .collection('Medications')
@@ -209,8 +233,8 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
         return null;
       }
 
-      var document = snapshot.docs.first;
-      String medicationId = document.id; // ใช้ Document ID แทน Medication_id
+      String medicationId = snapshot.docs.first.id; // ✅ ใช้ document ID แทน
+      print("✅ Medication_id found: $medicationId");
       return medicationId;
     } catch (e) {
       print("🔥 Error fetching medication_id: $e");
@@ -219,8 +243,8 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
   }
 
   Future<String> _checkStatus(String time) async {
-    // ตรวจสอบว่าถูกบันทึกเป็น Skip ในฐานข้อมูลหรือไม่
     String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
     QuerySnapshot snapshot = await FirebaseFirestore.instance
         .collection('Medication_history')
         .where('User_id', isEqualTo: widget.medicineData['user_id'])
@@ -245,7 +269,7 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
     } else if (difference.inMinutes.abs() <= 120) {
       return "On Time";
     } else {
-      return "Late";
+      return "Late"; // ✅ ใช้ "Late" ได้ แต่ยังไม่บันทึกลง Firestore
     }
   }
 
@@ -339,9 +363,10 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
               title: 'ข้อมูลยา',
               child: Column(
                 children: [
-                  _buildInfoRow('ชื่อยา', widget.medicineData['M_name'] ?? 'N/A'),
-                  _buildInfoRow('รายละเอียด',
-                      widget.medicineData['Properties'] ?? 'N/A'),
+                  _buildInfoRow(
+                      'ชื่อยา', widget.medicineData['M_name'] ?? 'N/A'),
+                  _buildInfoRow(
+                      'รายละเอียด', widget.medicineData['Properties'] ?? 'N/A'),
                   _buildInfoRow(
                       'ความถี่', widget.medicineData['Frequency'] ?? 'N/A'),
                 ],
@@ -376,28 +401,35 @@ class _MedicineDetailPageState extends State<MedicineDetailPage> {
                       if (!isMarked &&
                           (status == "On Time" || status == "Late"))
                         Center(
-                          child: ElevatedButton(
-                            onPressed: () async {
+                            child: ElevatedButton(
+                          onPressed: () async {
+                            String status = await _checkStatus(time);
+
+                            // ✅ ถ้าเป็น "Late" และยังไม่ถูก mark ให้บันทึกเมื่อกดปุ่ม
+                            if (status == "Late" &&
+                                !markedTimes.contains(time)) {
+                              await _saveToHistory(time, "Late");
+                            } else {
                               await _saveToHistory(time, status);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 40, vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                            child: const Text(
-                              "กดเมื่อใช้ยาแล้ว",
-                              style: TextStyle(
-                                fontSize: 20,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 40, vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                        ),
+                          child: const Text(
+                            "กดเมื่อใช้ยาแล้ว",
+                            style: TextStyle(
+                              fontSize: 20,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )),
                       const SizedBox(height: 16),
                     ],
                   );

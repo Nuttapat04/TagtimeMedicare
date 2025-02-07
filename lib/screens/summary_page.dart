@@ -1409,14 +1409,14 @@ class _SummaryPageState extends State<SummaryPage>
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Medication updated successfully!'),
+                          content: Text('อัปเดตข้อมูลเรียบร้อย!'),
                         ),
                       );
                     } catch (e) {
                       print('Error updating medication: $e');
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('Failed to update medication!'),
+                          content: Text('เกิดข้อผิดพลาดในการอัปเดต!'),
                         ),
                       );
                     }
@@ -1444,11 +1444,11 @@ class _SummaryPageState extends State<SummaryPage>
         return AlertDialog(
           backgroundColor: const Color(0xFFFEF4E0),
           title: const Text(
-            'Confirm Delete',
+            'ยืนยันการลบ',
             style: TextStyle(color: Color(0xFFC76355)),
           ),
           content: const Text(
-            'Are you sure you want to delete this medication?',
+            'คุณต้องการลบข้อมูลยาใช่หรือไม่?',
             style: TextStyle(color: Colors.black),
           ),
           actions: [
@@ -1457,7 +1457,7 @@ class _SummaryPageState extends State<SummaryPage>
                 Navigator.pop(context);
               },
               child: const Text(
-                'Cancel',
+                'บกเลิก',
                 style: TextStyle(color: Colors.grey),
               ),
             ),
@@ -1488,7 +1488,7 @@ class _SummaryPageState extends State<SummaryPage>
                 backgroundColor: Colors.red,
               ),
               child: const Text(
-                'Delete',
+                'ยืนยันการลบ',
                 style: TextStyle(color: Colors.white),
               ),
             ),
