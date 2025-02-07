@@ -119,8 +119,6 @@
 <key>UIStateRestorationEnabled</key>
 <true/>
 
-<key>UIApplicationExitsOnSuspend</key>
-<false/>
 
 </dict>
 </plist>
