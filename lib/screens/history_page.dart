@@ -249,7 +249,7 @@ class _HistoryPageState extends State<HistoryPage>
           if (history.isEmpty) {
             return const Center(
               child: Text(
-                'No medication history found',
+                'ไม่พบประวัติการใช้ยา',
                 style: TextStyle(fontSize: 24, color: Color(0xFFC76355)),
               ),
             );
